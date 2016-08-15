@@ -15,7 +15,7 @@ A wearable device to provide in-building navigation guidance for Jing Qin.
 
 ## Python style guide
 
-Follow the [PEP8](https://www.python.org/dev/peps/pep-0008/) style guide! A summary of notable PEP8 guidelines:
+(Try to) follow the [PEP8](https://www.python.org/dev/peps/pep-0008/) style guide! A summary of notable PEP8 guidelines:
 
 - 4 spaces per indentation level.
 - Variable and method names should be lowercase_with_underscores.
@@ -24,3 +24,11 @@ Follow the [PEP8](https://www.python.org/dev/peps/pep-0008/) style guide! A summ
 - Use single-quotes for strings.
 - Top-level classes/functions should be separated by two blank lines.
 - Import modules on separate lines. (BAD: `import os, sys`)
+
+The easiest way to follow these rules is to just use a linter. [Flake8](http://flake8.pycqa.org/en/latest/) is recommended.
+
+- Vim (https://github.com/nvie/vim-flake8)
+- Atom (https://github.com/AtomLinter/linter-flake8)
+- Sublime (https://github.com/dreadatour/Flake8Lint)
+- VSCode (https://marketplace.visualstudio.com/items?itemName=donjayamanne.python)
+- Notepad++ (why are you using this)
