@@ -62,3 +62,6 @@ celerybeat-schedule
 
 # dotenv
 .env
+
+# config
+config.ini
