@@ -10,6 +10,8 @@ A wearable device to provide in-building navigation guidance for Jing Qin.
 
 ### Python app
 
+This is a Python 2 app.
+
 - Copy `config.ini.example` to `config.ini`
 - Run the app with `python rpi/app.py`
 
