@@ -12,7 +12,10 @@ A wearable device to provide in-building navigation guidance for Jing Qin.
 
 This is a Python 2 app.
 
+- Create a virtualenv with `virtualenv env`
+- Activate the virtualenv with `. env/bin/activate`
 - Copy `config.ini.example` to `config.ini`
+- Install dependencies with `pip install -r rpi/requirements.txt`
 - Run the app with `python rpi/app.py`
 
 ## Python style guide

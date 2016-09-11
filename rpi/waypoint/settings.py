@@ -16,3 +16,6 @@ def conf_get(section, key, default=None):
         return default
 
 LOG_LEVEL = conf_get('general', 'log_level', default=logging.INFO)
+
+FLOORPLAN_URL = conf_get('map', 'floorplan_url')
+BUILDING_NAME = conf_get('map', 'building_name', default='DemoBuilding')
