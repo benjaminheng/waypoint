@@ -7,12 +7,13 @@ logger = get_logger(__name__)
 
 
 class Graph(object):
+    """Graph representation of a map of nodes. Handles only node IDs."""
     def __init__(self):
         self.edges = {}
 
-    def add_edge(self, from_node, to_node):
-        self.edges.setdefault(from_node.id, [])
-        self.edges[from_node.id].append(to_node)
+    def add_edge(self, from_node_id, to_node_id):
+        self.edges.setdefault(from_node_id, [])
+        self.edges[from_node_id].append(to_node_id)
 
     def neighbours(self, node_id):
         return self.edges[node_id]
@@ -98,8 +99,8 @@ class Map(object):
         for point in result.get('map', {}):
             node = Node(
                 point.get('nodeId'),
-                point.get('x'),
-                point.get('y'),
+                int(point.get('x')),
+                int(point.get('y')),
                 point.get('nodeName'),
                 [i.strip() for i in point.get('linkTo').split(',')],
                 level
@@ -114,19 +115,30 @@ class Map(object):
     def init_graph(self):
         for node_id in self.nodes:
             node = self.nodes.get(node_id)
-            for adjacent_node in node.adjacent:
-                self.graph.add_edge(node, self.nodes.get(adjacent_node))
+            for adjacent_node_id in node.adjacent:
+                self.graph.add_edge(node.id, adjacent_node_id)
             # If node is a staircase, we add edges to corresponding nodes
             # on levels that the staircase links to.
             if node.name.startswith('TO level'):
                 next_levels = self._parse_staircase_name(node.name)
                 for level in next_levels:
                     next_node = self._find_node_in_level(node.x, node.y, level)
-                    self.graph.add_edge(node, next_node)
+                    self.graph.add_edge(node.id, next_node.id)
 
-    def heuristic(self, node1, node2):
-        """Heuristic function to calculate distance cost between two nodes."""
-        return abs(node1.x - node2.x) + abs(node1.y - node2.y)
+    def heuristic(self, from_node_id, to_node_id):
+        """Heuristic function used in A-star search algorithm.
+
+        Calculates the distance between the current node and the goal node.
+        Movement cost is used as a function for now. Heuristic may be tweaked
+        if necessary.
+        """
+        return self.movement_cost(from_node_id, to_node_id)
+
+    def movement_cost(self, from_node_id, to_node_id):
+        """Function to calculate distance cost between two nodes."""
+        from_node = self.nodes.get(from_node_id)
+        to_node = self.nodes.get(to_node_id)
+        return abs(from_node.x - to_node.x) + abs(from_node.y - to_node.y)
 
     def search(self, start, goal):
         """A-star search algorithm."""
@@ -143,9 +155,9 @@ class Map(object):
             if current == goal:
                 break
 
-            for next in self.graph.neighbors(current):
+            for next in self.graph.neighbours(current):
                 new_cost = (
-                    cost_so_far[current] + self.graph.cost(current, next)
+                    cost_so_far[current] + self.movement_cost(current, next)
                 )
                 if next not in cost_so_far or new_cost < cost_so_far[next]:
                     cost_so_far[next] = new_cost

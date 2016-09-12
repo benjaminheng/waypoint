@@ -5,7 +5,7 @@ import pprint
 from waypoint.utils.logger import get_logger
 from waypoint.navigation.map import Map
 
-"""Just a test module to test certain components.
+"""Just a random debug module debug certain components.
 
 Usage: python test.py name_of_function [...args]
 """
@@ -17,15 +17,33 @@ pp = pprint.PrettyPrinter(indent=2)
 def pretty_print(obj):
     pp.pprint(obj)
 
+
 def print_nodes():
     """Print list of nodes"""
     nav_map = Map()
     pretty_print(nav_map.nodes)
 
+
 def print_graph_edges():
     """Print edges of graph"""
     nav_map = Map()
     pretty_print(nav_map.graph.edges)
+
+
+def a_star_search(start='1_1', goal='1_7'):
+    """Print edges of graph"""
+    nav_map = Map()
+    came_from, _ = nav_map.search(start, goal)
+    # Print path taken
+    current = goal
+    current_node = nav_map.nodes.get(current)
+    path = [current_node]
+    while current != start:
+        current = came_from[current]
+        current_node = nav_map.nodes.get(current)
+        path.append(current_node)
+    path.reverse()
+    pretty_print(path)
 
 
 if __name__ == '__main__':
