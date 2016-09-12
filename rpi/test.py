@@ -17,11 +17,15 @@ pp = pprint.PrettyPrinter(indent=2)
 def pretty_print(obj):
     pp.pprint(obj)
 
-
 def print_nodes():
     """Print list of nodes"""
     nav_map = Map()
     pretty_print(nav_map.nodes)
+
+def print_graph_edges():
+    """Print edges of graph"""
+    nav_map = Map()
+    pretty_print(nav_map.graph.edges)
 
 
 if __name__ == '__main__':

@@ -11,7 +11,8 @@ class Graph(object):
         self.edges = {}
 
     def add_edge(self, from_node, to_node):
-        self.edges[from_node.id] = to_node
+        self.edges.setdefault(from_node.id, [])
+        self.edges[from_node.id].append(to_node)
 
     def neighbours(self, node_id):
         return self.edges[node_id]
@@ -63,13 +64,27 @@ class Map(object):
         self.north_at = None
         self.wifi = {}
         self.download_floorplan(building_name)
+        self.init_graph()
 
     def _has_more_levels(self, populated_levels, next_levels):
+        """Does a SetB - SetA operation."""
+        # NOTE: Can be optimized to used actual Set objects
         return len([i for i in next_levels if i not in populated_levels]) > 0
+
+    def _parse_staircase_name(self, name):
+        """Returns the levels a staircase links to."""
+        levels = name.split('TO level')[-1].split(',')
+        return (int(level) for level in levels)
+
+    def _find_node_in_level(self, x, y, level):
+        """Find a node with x and y coordinates in a given level."""
+        for node_id in self.nodes:
+            node = self.nodes.get(node_id)
+            if node.level == level and node.x == x and node.y == y:
+                return node
 
     def download_floorplan(self, building_name, level=1):
         """Recursively download floorplans for all building levels."""
-        next_levels = []
         data = {
             'Building': building_name,
             'Level': level,
@@ -91,18 +106,30 @@ class Map(object):
             )
             self.nodes[node.id] = node
             if node.name.startswith('TO level'):
-                next_levels.extend(
-                    int(level) for level in
-                    node.name.split('TO level')[-1].split(',')
-                )
+                next_levels = self._parse_staircase_name(node.name)
         for i in next_levels:
             if i not in self.levels:
                 self.download_floorplan(building_name, i)
 
+    def init_graph(self):
+        for node_id in self.nodes:
+            node = self.nodes.get(node_id)
+            for adjacent_node in node.adjacent:
+                self.graph.add_edge(node, self.nodes.get(adjacent_node))
+            # If node is a staircase, we add edges to corresponding nodes
+            # on levels that the staircase links to.
+            if node.name.startswith('TO level'):
+                next_levels = self._parse_staircase_name(node.name)
+                for level in next_levels:
+                    next_node = self._find_node_in_level(node.x, node.y, level)
+                    self.graph.add_edge(node, next_node)
+
     def heuristic(self, node1, node2):
+        """Heuristic function to calculate distance cost between two nodes."""
         return abs(node1.x - node2.x) + abs(node1.y - node2.y)
 
     def search(self, start, goal):
+        """A-star search algorithm."""
         frontier = PriorityQueue()
         frontier.put(start, 0)
         came_from = {}
