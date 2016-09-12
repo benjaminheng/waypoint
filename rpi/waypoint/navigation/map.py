@@ -94,6 +94,7 @@ class Map(object):
         if resp.status_code != 200:
             return
 
+        next_levels = []
         self.levels.append(level)
         result = resp.json()
         for point in result.get('map', {}):
@@ -107,7 +108,7 @@ class Map(object):
             )
             self.nodes[node.id] = node
             if node.name.startswith('TO level'):
-                next_levels = self._parse_staircase_name(node.name)
+                next_levels.extend(self._parse_staircase_name(node.name))
         for i in next_levels:
             if i not in self.levels:
                 self.download_floorplan(building_name, i)
