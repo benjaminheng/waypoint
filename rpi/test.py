@@ -4,6 +4,7 @@ import sys
 import pprint
 from waypoint.utils.logger import get_logger
 from waypoint.navigation.map import Map
+from waypoint.firmware.comms import UART
 
 """Just a random debug module debug certain components.
 
@@ -44,6 +45,20 @@ def a_star_search(start='1_1', goal='1_7'):
         path.append(current_node)
     path.reverse()
     pretty_print(path)
+
+
+def uart_receive(port):
+    uart = UART(port)
+    while True:
+        packets = uart.read()
+        print(packets)
+
+
+def uart_send(port):
+    uart = UART(port)
+    while True:
+        data = raw_input('Send data: ')  # NOQA
+        uart.send(data)
 
 
 if __name__ == '__main__':
