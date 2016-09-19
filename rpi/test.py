@@ -21,6 +21,7 @@ def pretty_print(obj):
 def print_nodes():
     """Print list of nodes"""
     nav_map = Map()
+    print('North at: {0}'.format(nav_map.north_at))
     pretty_print(nav_map.nodes)
 
 

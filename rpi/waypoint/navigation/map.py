@@ -97,6 +97,8 @@ class Map(object):
         next_levels = []
         self.levels.append(level)
         result = resp.json()
+        if self.north_at is None:
+            self.north_at = result.get('info', {}).get('northAt')
         for point in result.get('map', {}):
             node = Node(
                 point.get('nodeId'),
