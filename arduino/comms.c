@@ -18,7 +18,7 @@ void sendData(uint8_t packetType, uint8_t dev1, uint32_t val1,
                 uint32_t val3, uint8_t dev4, uint32_t val4)
 {
   Packet pkt;
-  int buffer[10];
+  char buffer[24];
   pkt.packetType = packetType;
   pkt.deviceId1 = dev1;
   pkt.valueof1 = val1;
@@ -32,7 +32,7 @@ void sendData(uint8_t packetType, uint8_t dev1, uint32_t val1,
   sendSerialData(buffer, len);
 }
 
-unsigned int serialize(int *buf, void *p, size_t size)
+unsigned int serialize(char *buf, void *p, size_t size)
 {
   char checksum = 0;
   buf[0]=size;
@@ -45,19 +45,20 @@ unsigned int serialize(int *buf, void *p, size_t size)
   return size+2;
 }
 
-void sendSerialData(int *buffer, int len)
+void sendSerialData(char *buffer, int len)
 {
   for(int i=0; i<len; i++)
-  Serial.write(buffer[i]);
+  Serial1.write(buffer[i]);
 }
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(9600);
+  Serial1.begin(9600);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  sendData(1, 1, 1, 2, 2, 3, 3, 4, 4);
+  //payload len - packettype - deviceid - device value - ... - checksum
+  sendData(1, 1, 1, 2, 2, 3, 3, 4, 4); // dummy values for now
   sendData(1, 5, 5, 6, 6, 7, 7, 8, 8);
 }
