@@ -1,150 +1,136 @@
 #include <Arduino.h>
 #include <Arduino_FreeRTOS.h>
 
-#define MAX_BUF_LEN 23
-#define NUM_DEVICES 4
-#define PACKET_OK 1
-#define PACKET_BAD_CHECKSUM 2
+#define CHECKSUM_BYTES 1
 
-typedef struct Packet
-{ //Packet Type, Number of Devices, 4x Device ID + value, checksum added later
-  uint8_t pktType;
+#define PACKET_TYPE_HELLO 1
+#define PACKET_TYPE_ACK 2
+#define PACKET_TYPE_NACK 3
+#define PACKET_TYPE_DATA 4
+
+#define DEVICE_PAYLOAD_SIZE 5
+
+typedef struct PacketHeader
+{
+  uint16_t preamble;
+  uint8_t packetType;
   uint8_t numDevices;
-  uint8_t deviceId1;
-  uint32_t valueof1;
-  uint8_t deviceId2;
-  uint32_t valueof2;
-  uint8_t deviceId3;
-  uint32_t valueof3;
-  uint8_t deviceId4;
-  uint32_t valueof4;
 };
 
-void sendData(uint8_t pktType, uint8_t dev1, uint32_t val1, 
-                uint8_t dev2, uint32_t val2, uint8_t dev3, 
-                uint32_t val3, uint8_t dev4, uint32_t val4){
-  
-  Packet pkt = {
-    .pktType = pktType,
-    .numDevices = NUM_DEVICES,
-    .deviceId1 = dev1,
-    .valueof1 = val1,
-    .deviceId2 = dev2,
-    .valueof2 = val2,
-    .deviceId3 = dev3,
-    .valueof3 = val3,
-    .deviceId4 = dev4,
-    .valueof4 = val4
+// Update DEVICE_PAYLOAD_SIZE if changed
+typedef struct DevicePayload {
+  uint8_t id;
+  uint32_t data;
+};
+
+void sendHello() {
+}
+
+void sendACK() {
+}
+
+void sendNACK() {
+}
+
+/* Sends a DATA packet.
+ */
+void sendData(uint8_t packetType, struct DevicePayload devices[],
+              uint8_t numDevices) {
+  PacketHeader header = {
+    .preamble = 0xAAAA,
+    .packetType = PACKET_TYPE_DATA,
+    .numDevices = numDevices 
   };
-  
-  char buffer[MAX_BUF_LEN+2];
 
-  serialize(buffer, &pkt, sizeof(pkt));
-  sendSerialData(buffer, sizeof(buffer));
-}
+  uint8_t headerSize = sizeof(header);
+  uint8_t totalSize = headerSize + DEVICE_PAYLOAD_SIZE*numDevices + CHECKSUM_BYTES;
 
-unsigned int serialize(char *buf, void *p, size_t size){
-  char checksum = 0;
-  uint8_t startMarker1 = 0xAA; //preamble 0xAAAA
-  uint8_t startMarker2 = 0xAA;
-  buf[0] = startMarker1;
-  buf[1] = startMarker2;
-  memcpy(buf+2, p, size);
-  for( int i = 2; i < size+2; i++ ){
-    checksum ^= buf[i];
+  // construct packet
+  unsigned char buffer[totalSize];
+  memcpy(buffer, &header, headerSize);
+  memcpy(buffer + headerSize, devices, DEVICE_PAYLOAD_SIZE*numDevices);
+  uint8_t checksum = 0;
+  for (int i=0; i++; i<(totalSize-1)) {
+    checksum ^= buffer[i];
   }
-  buf[size+3] = checksum;
-  //Serial.print("Serialize Checksum = ");
-  //Serial.println(checksum);
-  return size+3;
+  buffer[totalSize - CHECKSUM_BYTES] = checksum;
+
+  send(buffer, sizeof(buffer));
 }
 
-void sendSerialData(char *buffer, int len){
-  Serial1.write(buffer, len);
+/* Writes buffer to serial port
+ */
+void send(unsigned char *buffer, uint8_t size) {
+  debugPrintBytes(buffer, size); // TODO: remove
+  Serial.write(buffer, size);
 }
 
-void receiveData(){
-  char buffer[MAX_BUF_LEN];
-  char check[2];
-  Packet pkt;
-  char rbyte;
-  int index = 0;
-  boolean newData = false; 
+/* Print buffer in a nice human-readable format.
+ */
+void debugPrintBytes(unsigned char *buffer, uint8_t size) {
+  for (int i = 0; i < size; i++) {
+    if (i > 0) Serial.print(":");
+    Serial.print(buffer[i], HEX);
+  }
+  Serial.println();
+}
 
-  while ( Serial.available() > 0 && newData == false ) {
-    rbyte = Serial.read();
-    index = index % 2;
-    check[index] = rbyte;
-    index++;
-    //Serial.print(check[0]);
-    //Serial.println(check[1]);
-    
-    if ( check[0] == (char)0xAA && check[1] == (char)0xAA ){
-      for ( int j = 0; j < 23; j++ ){
-        buffer[j] = Serial.read();    
+void receive() {
+  // 32 bytes is enough for 5 device payloads. We won't be sending so many.
+  unsigned char buffer[32];
+  unsigned char check[2];
+  unsigned char rbyte;
+  int8_t index = 0;
+  int8_t dataSize = 0;
+  boolean newData = false;
+
+  // TODO: probably need a timeout here
+  while (newData == false) {
+    if (Serial.available()) {
+      rbyte = Serial.read();
+      index = index % 2;
+      check[index] = rbyte;
+      index++;
+
+      if (check[0] == (char)0xAA && check[1] == (char)0xAA){
+        // Packet preamble verified. Start doing things with the packet
+        // Make sure that a packet is available to read before trying to read.
+
+        // Set newData to true if checksum is verified.
+        newData = true;
       }
-      newData = true;
     }
   }
-  
-  if (newData == true){
-    newData = false;
-    unsigned int result = deserialize(&pkt, buffer);
-    //process the values here
-    if ( result == 1 ){
-      Serial.print("Serial Data: ");
-      Serial.print(pkt.pktType);
-      Serial.print("..");
-      Serial.print(pkt.deviceId1);
-      Serial.print("..");
-      Serial.print(pkt.valueof1);
-      Serial.print("..");
-      Serial.print(pkt.deviceId2);
-      Serial.print("..");
-      Serial.print(pkt.valueof2);
-      Serial.print("..");
-      Serial.print(pkt.deviceId3);
-      Serial.print("..");
-      Serial.print(pkt.valueof3);
-      Serial.print("..");
-      Serial.print(pkt.deviceId4);
-      Serial.print("..");
-      Serial.print(pkt.valueof4);
-      Serial.println("..");
-    } else {
-      Serial.println("Checksum failed?");
-    }
-  }
-}
 
-unsigned int deserialize(void *p, char *buf){
-  // numDevices * 5bytes + 1byte pktType + 1byte numDevices
-  size_t size = (buf[1] * 5) + 2;
-  char checksum = 0;
-
-  for( int i = 0; i < size; i++ ){
-    checksum ^= buf[i];
-  }
-  //Serial.print("Deserialize Checksum = ");
-  //Serial.println(checksum);
-
-  if ( checksum == buf[size+1] ){
-    memcpy(p, buf, size);
-    return PACKET_OK;
-  } else {
-    return PACKET_BAD_CHECKSUM;
-  }
+  // TODO: do something with the data here instead of just printing it out.
+  // debugPrintBytes(buffer, dataSize); // TODO: remove
 }
 
 void setup() {
-  // put your setup code here, to run once:
   Serial.begin(115200);
-  Serial1.begin(115200);
 }
 
 void loop() {
-  sendData(1, 7, 7, 2, 2, 3, 3, 4, 4); // dummy values for now
-  receiveData();
-  //sendData(1, 8, 8, 6, 6, 3, 4, 5, 4); // dummy values for now
-  //receiveData();
+  DevicePayload devices[3];
+  devices[0].id = 1;
+  devices[0].data = 0xAABBCCDD;
+  devices[1].id = 2;
+  devices[1].data = 0x11223344;
+  devices[2].id = 3;
+  devices[2].data = 0x55667788;
+  uint8_t numDevices = sizeof(devices) / sizeof(devices[0]);
+  sendData(PACKET_TYPE_DATA, devices, numDevices);
+  Serial.println();
+
+  DevicePayload devices2[1];
+  devices2[0].id = 1;
+  devices2[0].data = 0x22446688;
+  numDevices = sizeof(devices2) / sizeof(devices2[0]);
+  sendData(PACKET_TYPE_DATA, devices2, numDevices);
+  Serial.println();
+  sendData(PACKET_TYPE_DATA, devices2, numDevices);
+  Serial.println();
+  sendData(PACKET_TYPE_DATA, devices2, numDevices);
+  Serial.println();
+  while (1) { }
 }
