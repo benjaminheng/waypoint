@@ -58,13 +58,13 @@ class Node(object):
 
 
 class Map(object):
-    def __init__(self, building_name=BUILDING_NAME):
+    def __init__(self, building_name=BUILDING_NAME, level=1):
         self.levels = []
         self.nodes = {}
         self.graph = Graph()
         self.north_at = None
         self.wifi = {}
-        self.download_floorplan(building_name)
+        self.download_floorplan(building_name, level)
         self.init_graph()
 
     def _has_more_levels(self, populated_levels, next_levels):
