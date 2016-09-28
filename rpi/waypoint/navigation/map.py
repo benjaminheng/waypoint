@@ -58,13 +58,13 @@ class Node(object):
 
 
 class Map(object):
-    def __init__(self, building_name=BUILDING_NAME):
+    def __init__(self, building_name=BUILDING_NAME, level=1):
         self.levels = []
         self.nodes = {}
         self.graph = Graph()
         self.north_at = None
         self.wifi = {}
-        self.download_floorplan(building_name)
+        self.download_floorplan(building_name, level)
         self.init_graph()
 
     def _has_more_levels(self, populated_levels, next_levels):
@@ -98,7 +98,7 @@ class Map(object):
         self.levels.append(level)
         result = resp.json()
         if self.north_at is None:
-            self.north_at = result.get('info', {}).get('northAt')
+            self.north_at = int(result.get('info', {}).get('northAt'))
         for point in result.get('map', {}):
             node = Node(
                 point.get('nodeId'),
