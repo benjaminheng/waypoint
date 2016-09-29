@@ -34,10 +34,8 @@ def find_path(nav_map, start='1_1', goal='1_7'):
 
 
 if __name__ == '__main__':
-    # building = raw_input('Building Name: ')  # NOQA
-    # level = input('Level: ')
-    building = 'DemoBuilding'
-    level = 1
+    building = raw_input('Building Name: ')  # NOQA
+    level = input('Level: ')
     nav_map = Map(building, level)
     print('North at: {0}'.format(nav_map.north_at))
     pretty_print(nav_map.nodes)
