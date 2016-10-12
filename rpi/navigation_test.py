@@ -36,6 +36,8 @@ def find_path(nav_map, start='1_1', goal='1_7'):
 if __name__ == '__main__':
     building = raw_input('Building Name: ')  # NOQA
     level = input('Level: ')
+    # building = 'COM1'
+    # level = 1
     nav_map = Map(building, level)
     print('North at: {0}'.format(nav_map.north_at))
     pretty_print(nav_map.nodes)
@@ -44,6 +46,7 @@ if __name__ == '__main__':
     while option != 'exit':
         print(MENU)
         option = raw_input('> ')  # NOQA
+        # option = '2'
 
         if option == '1':
             option = raw_input('Start, End node: ')  # NOQA
@@ -71,75 +74,25 @@ if __name__ == '__main__':
                             nearest_node = node
                     north = nav_map.north_at
 
-                    # Get the direction of the nearest node
-                    if north == 90:
-                        # east
-                        degrees = math.degrees(math.atan2(
-                            nearest_node.y - y, nearest_node.x - x
-                        ))
-                    elif north == 0:
-                        # north
-                        degrees = math.degrees(math.atan2(
-                            x - nearest_node.x, nearest_node.y - y
-                        ))
-                    elif north == 180:
-                        # south
-                        degrees = math.degrees(math.atan2(
-                            nearest_node.x - x, y - nearest_node.y
-                        ))
-                    elif north == 270:
-                        # west
-                        degrees = math.degrees(math.atan2(
-                            y - nearest_node.y, x - nearest_node.x
-                        ))
-                    # right turn: +ve, left turn: -ve
-                    degrees = -degrees
-                    # normalize node direction with respect to north
-                    norm_deg = degrees
-                    if degrees <= 0:
-                        norm_deg = 360 - abs(degrees)
-                    # Get the opposite direction from the node
-                    deg_range = (
-                        norm_deg - 180
-                        if norm_deg > 180 else norm_deg + 180
-                    )
-
-                    # identify the lower and upper directions
-                    lower, upper = (
-                        (deg_range, norm_deg)
-                        if deg_range < norm_deg
-                        else (norm_deg, deg_range)
-                    )
-
-                    # if heading falls between lower and upper bound,
-                    # we can easily figure out the direction to turn
-                    if lower < heading < upper:
-                        if heading < norm_deg:
-                            result = abs(norm_deg - heading)
-                        else:
-                            result = -abs(heading - norm_deg)
-                    # turn left if node is to our left and less than 90deg
-                    elif upper == norm_deg and heading > upper and \
-                            heading - upper <= 90:
-                        result = -abs(heading - norm_deg)
-                    # turn right if node is to our right less than 90deg
-                    elif lower == norm_deg and heading < lower and \
-                            lower - heading <= 90:
-                        result = abs(norm_deg - heading)
-                    # edge case where the node is on the opposite side of north
-                    # boundary (ie. the transition between 360deg and 0deg)
-                    elif upper == norm_deg:
-                        result = -abs(360 - upper + heading)
-                    # similar edge case to the above, but in opposite direction
+                    degrees = math.degrees(math.atan2(
+                        nearest_node.y - y, nearest_node.x - x
+                    ))
+                    print('north at: {0}'.format(north))
+                    degrees = degrees % 360
+                    if degrees < 90:
+                        degrees = 90 - degrees
                     else:
-                        result = abs(360 - heading + lower)
+                        degrees = degrees - 90
+                        degrees = 360 - degrees
 
-                    # right turn: +ve, left turn: -ve
-                    # degrees = -degrees
-                    distance = math.hypot(
-                        nearest_node.x - x, nearest_node.y - y
-                    )
+                    # Calculate offset between map north and true north
+                    map_north_offset = 360 - north
+                    print(map_north_offset)
+
+                    # Normalize node direction with respect to true north
+                    degrees = map_north_offset + degrees
+                    if degrees > 360:
+                        degrees = abs(360 - degrees)
                     print(nearest_node)
-                    print('Turning angle: {0}'.format(result))
-                    print('Distance: {0}'.format(distance))
+                    print(degrees)
                     option = raw_input('x, y, heading: ')  # NOQA
