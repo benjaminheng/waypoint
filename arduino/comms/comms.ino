@@ -135,18 +135,18 @@ void setup() {
   writeReg(CTRL_REG4, 0x00);
   writeReg(CTRL_REG1, 0x6F);
   delay(100); // Wait for sensor to stabilize
-  Serial.println("WRITEREGFINISH");
-  compass.init();//UNCOMMENT ME
-  compass.enableDefault();//UNCOMMENT ME
-  compass.read();//UNCOMMENT ME
-  Serial.println("COMPASSINITFINISH");
+  //Serial.println("WRITEREGFINISH");
+  //compass.init();//UNCOMMENT ME
+  //compass.enableDefault();//UNCOMMENT ME
+  //compass.read();//UNCOMMENT ME
+  //Serial.println("COMPASSINITFINISH");
   /* Set kalman and gyro starting angle */
-  while (i2cRead(OUT_X_L | (1 << 7), i2cData, 6)); //UNCOMMENT MEE
+  //while (i2cRead(OUT_X_L | (1 << 7), i2cData, 6)); //UNCOMMENT MEE
   
-  AccX = compass.a.x; //UNCOMMENT ME
-  AccY = compass.a.y; //UNCOMMENT ME
-  AccZ = compass.a.z; //UNCOMMENT ME
-  Serial.println("LINE159");
+  //AccX = compass.a.x; //UNCOMMENT ME
+  //AccY = compass.a.y; //UNCOMMENT ME
+  //AccZ = compass.a.z; //UNCOMMENT ME
+  //Serial.println("LINE149");
   
   // Source: http://www.freescale.com/files/sensors/doc/app_note/AN3461.pdf eq. 25 and eq. 26
   // atan2 outputs the value of -π to π (radians) - see http://en.wikipedia.org/wiki/Atan2
@@ -193,7 +193,7 @@ void setup() {
   xTaskCreate(
       ReadIMU
     ,  "ReadIMU"   
-    ,  256  // Stack size
+    ,  STACKSIZE  // Stack size
     ,  NULL
     ,  1  // priority
     ,  NULL
@@ -203,7 +203,7 @@ void setup() {
     xTaskCreate(
         CalcKalman
     ,  "CalcKalman"   
-    ,  256  // Stack size
+    ,  STACKSIZE  // Stack size
     ,  NULL
     ,  1  // priority
     ,  NULL
@@ -213,7 +213,7 @@ void setup() {
   xTaskCreate(
         CalcSteps
     ,  "CalcSteps"   
-    ,  256  // Stack size
+    ,  STACKSIZE  // Stack size
     ,  NULL
     ,  1  // priority
     ,  NULL
@@ -223,7 +223,7 @@ void setup() {
   xTaskCreate(
         GetCompass
     ,  "GetCompass"   
-    ,  256  // Stack size
+    ,  STACKSIZE  // Stack size
     ,  NULL
     ,  1  // priority
     ,  NULL
@@ -266,15 +266,20 @@ void CalcKalman( void *pvParameters ){
     for(;;){
   //JQ Kalman processing code
      /* Update all the values */
+    
+    /*
     while (i2cRead(OUT_X_L | (1 << 7), i2cData, 14));
     compass.read();
   
     AccX = compass.a.x;
     AccY = compass.a.y;
     AccZ = compass.a.z;
+    
     GyroX = (i2cData[1] << 8) | i2cData[0];
     GyroY = (i2cData[3] << 8) | i2cData[2];
     GyroZ = (i2cData[5] << 8) | i2cData[4];
+    
+    */
 
     double dt = (double)(micros() - timer) / 1000000; // Calculate delta time
     timer = micros();
@@ -373,13 +378,16 @@ void CalcKalman( void *pvParameters ){
 }
 
 void GetCompass( void *pvParameters ){
-  Serial.println("INSIDECOMPASS");
-  
+  for(;;){
+    Serial.println("INSIDECOMPASS");
+  }
 }
 
 void CalcSteps( void *pvParameters ){
   //JQ Step counting code
+  for(;;){
   Serial.println("INSIDECALCSTEPS");
+  }
 }
 
 void ReadUltrasonic( void *pvParameters ){
