@@ -22,7 +22,7 @@ class TestComms(TestCase):
             '\x01\x01\x01' +
             '\x02\x02\x02' +
             '\x03\x03\x03' +
-            '\x02'
+            '\x02\x0D\x0A'
         )
 
     def _set_data(self, data):
