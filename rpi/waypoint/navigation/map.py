@@ -1,7 +1,10 @@
 import requests
 import heapq
-from waypoint.settings import FLOORPLAN_URL, BUILDING_NAME
+import re
+from waypoint.settings import FLOORPLAN_URL, BUILDINGS
 from waypoint.utils.logger import get_logger
+
+LINK_RE = re.compile('TO (?P<building>\w+)-(?P<level>\d+)-(?P<node>\d+)')
 
 logger = get_logger(__name__)
 
@@ -35,10 +38,11 @@ class PriorityQueue(object):
 
 class Node(object):
     """Describes a node on the map."""
-    def __init__(self, node_id, x, y, name, adjacent_node_ids, level):
-        node_id = '{0}_{1}'.format(level, node_id)
+    def __init__(self, node_id, x, y, name, adjacent_node_ids, level,
+                 building):
+        node_id = self._get_node_id(building, level, node_id)
         adjacent = (
-            '{0}_{1}'.format(level, i.strip())
+            self._get_node_id(building, level, i.strip())
             for i in adjacent_node_ids
         )
         self.id = node_id
@@ -47,6 +51,10 @@ class Node(object):
         self.name = name
         self.adjacent = adjacent
         self.level = level
+        self.building = building
+
+    def _get_node_id(self, building, level, node_id):
+        return '{0}_{1}_{2}'.format(building, level, node_id)
 
     def __str__(self):
         return '{0} {1} ({2}, {3})'.format(
@@ -58,13 +66,12 @@ class Node(object):
 
 
 class Map(object):
-    def __init__(self, building_name=BUILDING_NAME, level=1):
-        self.levels = []
+    def __init__(self, buildings=BUILDINGS):
+        self.north_map = {}
         self.nodes = {}
         self.graph = Graph()
-        self.north_at = None
-        self.wifi = {}
-        self.download_floorplan(building_name, level)
+
+        self.download_floorplans(buildings)
         self.init_graph()
 
     def _has_more_levels(self, populated_levels, next_levels):
@@ -84,49 +91,59 @@ class Map(object):
             if node.level == level and node.x == x and node.y == y:
                 return node
 
-    def download_floorplan(self, building_name, level=1):
-        """Recursively download floorplans for all building levels."""
-        data = {
-            'Building': building_name,
-            'Level': level,
-        }
-        resp = requests.get(FLOORPLAN_URL, params=data)
-        if resp.status_code != 200:
-            return
+    def _get_map_key(self, building, level):
+        return '{0}_{1}'.format(building, level)
 
-        next_levels = []
-        self.levels.append(level)
-        result = resp.json()
-        if self.north_at is None:
-            self.north_at = int(result.get('info', {}).get('northAt'))
-        for point in result.get('map', {}):
-            node = Node(
-                point.get('nodeId'),
-                int(point.get('x')),
-                int(point.get('y')),
-                point.get('nodeName'),
-                [i.strip() for i in point.get('linkTo').split(',')],
-                level
-            )
-            self.nodes[node.id] = node
-            if node.name.startswith('TO level'):
-                next_levels.extend(self._parse_staircase_name(node.name))
-        for i in next_levels:
-            if i not in self.levels:
-                self.download_floorplan(building_name, i)
+    def download_floorplans(self, buildings):
+        for building, levels in buildings.items():
+            for level in levels:
+                data = {
+                    'Building': building,
+                    'Level': level,
+                }
+                resp = requests.get(FLOORPLAN_URL, params=data)
+                if resp.status_code != 200:
+                    return
+
+                result = resp.json()
+                key = self._get_map_key(building, level)
+                self.north_map[key] = (
+                    int(result.get('info', {}).get('northAt'))
+                )
+
+                for point in result.get('map', {}):
+                    node = Node(
+                        point.get('nodeId'),
+                        int(point.get('x')),
+                        int(point.get('y')),
+                        point.get('nodeName'),
+                        [i.strip() for i in point.get('linkTo').split(',')],
+                        level,
+                        building
+                    )
+                    self.nodes[node.id] = node
 
     def init_graph(self):
         for node_id in self.nodes:
             node = self.nodes.get(node_id)
             for adjacent_node_id in node.adjacent:
                 self.graph.add_edge(node.id, adjacent_node_id)
-            # If node is a staircase, we add edges to corresponding nodes
-            # on levels that the staircase links to.
-            if node.name.startswith('TO level'):
-                next_levels = self._parse_staircase_name(node.name)
-                for level in next_levels:
-                    next_node = self._find_node_in_level(node.x, node.y, level)
+
+            match = LINK_RE.match(node.name)
+            if match:
+                node_id = '{0}_{1}_{2}'.format(
+                    match.group('building'),
+                    match.group('level'),
+                    match.group('node')
+                )
+                next_node = self.nodes.get(node_id)
+                if next_node:
                     self.graph.add_edge(node.id, next_node.id)
+                else:
+                    logger.info(
+                        'Cannot find node {0} in node list. Might be normal.'
+                        .format(node_id)
+                    )
 
     def heuristic(self, from_node_id, to_node_id):
         """Heuristic function used in A-star search algorithm.
