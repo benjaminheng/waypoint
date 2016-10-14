@@ -1,21 +1,16 @@
 import logging
-import os
-import ConfigParser
 
-BASE_DIR = os.path.realpath(os.path.dirname(__file__))
+LOG_LEVEL = logging.INFO
 
-config_file = os.path.join(BASE_DIR, 'config.ini')
-config_parser = ConfigParser.ConfigParser()
-config_parser.read(config_file)
+FLOORPLAN_URL = 'http://showmyway.comp.nus.edu.sg/getMapInfo.php'
 
+# Map of building and levels to load
+BUILDINGS = {
+    'COM1': (1, 2),
+    'COM2': (2, 3),
+}
 
-def conf_get(section, key, default=None):
-    try:
-        return config_parser.get(section, key)
-    except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-        return default
-
-LOG_LEVEL = conf_get('general', 'log_level', default=logging.INFO)
-
-FLOORPLAN_URL = conf_get('map', 'floorplan_url')
-BUILDING_NAME = conf_get('map', 'building_name', default='DemoBuilding')
+try:
+    from local_settings import *  # NOQA
+except ImportError:
+    pass

@@ -1,6 +1,0 @@
-[general]
-log_level=DEBUG
-
-[map]
-floorplan_url=http://showmyway.comp.nus.edu.sg/getMapInfo.php?Building={0}&Level={1}
-building_name=DemoBuilding
