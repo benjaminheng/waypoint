@@ -1,15 +1,20 @@
 import serial
-import time
 import io
-from Queue import Queue
+from Queue import LifoQueue
 from threading import Thread
+from waypoint.utils.logger import get_logger
 from waypoint.firmware.packet import Packet, PacketType, DeviceID
+
+logger = get_logger(__name__)
 
 
 class UART(object):
     def __init__(self, port, **kwargs):
         self.s = serial.Serial(port, **kwargs)
-        self.serial = io.TextIOWrapper(io.BufferedRWPair(self.s, self.s, 64), encoding = 'unicode-escape', newline='\x0D\x0A')
+        self.serial = io.TextIOWrapper(
+            io.BufferedRWPair(self.s, self.s, 64),
+            encoding='unicode-escape', newline='\x0D\x0A'
+        )
 
     def read(self):
         self.s.flushInput()
@@ -18,20 +23,17 @@ class UART(object):
         data = data.encode('raw_unicode_escape')
         return packet_type, data
 
-    def write(self):
-        self.serial.write(u'A')
-
 
 class Comms(Thread):
     def __init__(self, uart_device, baudrate=115200,
                  timeout=None, **kwargs):
         self.device_queue = {
-            DeviceID.ULTRASOUND_FRONT: Queue(),
-            DeviceID.ULTRASOUND_LEFT: Queue(),
-            DeviceID.ULTRASOUND_RIGHT: Queue(),
-            DeviceID.KALMAN_FILTER: Queue(),
-            DeviceID.STEP_COUNT: Queue(),
-            DeviceID.COMPASS: Queue(),
+            DeviceID.ULTRASOUND_FRONT: LifoQueue(maxsize=5),
+            DeviceID.ULTRASOUND_LEFT: LifoQueue(maxsize=5),
+            DeviceID.ULTRASOUND_RIGHT: LifoQueue(maxsize=5),
+            DeviceID.KALMAN_FILTER: LifoQueue(maxsize=5),
+            DeviceID.STEP_COUNT: LifoQueue(maxsize=5),
+            DeviceID.COMPASS: LifoQueue(maxsize=5),
         }
         self.uart = UART(
             uart_device,
@@ -46,20 +48,20 @@ class Comms(Thread):
         Populates queue with packets received, which can be retrieved
         from the main thread.
         """
-        # Populate device data like this
         while True:
             try:
-                pkttype, data = self.uart.read()
-                pkt_no_error = Packet.validate_checksum(data)
-                if pkt_no_error:
-                    #print('checksum passed')
-                    if int(pkttype.encode('hex'), 16) == PacketType.DATA:
-                        #print('packet type is data')
+                packet_type, data = self.uart.read()
+                is_packet_valid = Packet.validate_checksum(data)
+                if is_packet_valid:
+                    if packet_type == PacketType.DATA:
                         packets = Packet.deserialize(data)
                         for packet in packets:
                             self.device_queue[packet.device_id].put(packet)
-                            pkt = self.device_queue[packet.device_id].get()
-                        print('\t'.join('{0}, {1}'.format(p.device_id, p.data) for p in packets))
-            except:
-                pass
-                        
+                        logger.debug(
+                            '\t'.join(
+                                '{0}, {1}'.format(p.device_id, p.data)
+                                for p in packets
+                            )
+                        )
+            except Exception as e:
+                logger.warning('{0}: {1}'.format(type(e).__name__, e))

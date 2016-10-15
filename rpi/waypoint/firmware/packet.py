@@ -66,4 +66,4 @@ class Packet(object):
     @classmethod
     def get_packet_type(self, data):
         """Returns the packet type."""
-        return data[0]
+        return int(data[0].encode('hex'), 16)
