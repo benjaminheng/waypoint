@@ -27,13 +27,14 @@ class UART(object):
 class Comms(Thread):
     def __init__(self, uart_device, baudrate=115200,
                  timeout=None, **kwargs):
+        super(Comms, self).__init__()
         self.device_queue = {
-            DeviceID.ULTRASOUND_FRONT: LifoQueue(maxsize=5),
-            DeviceID.ULTRASOUND_LEFT: LifoQueue(maxsize=5),
-            DeviceID.ULTRASOUND_RIGHT: LifoQueue(maxsize=5),
-            DeviceID.KALMAN_FILTER: LifoQueue(maxsize=5),
-            DeviceID.STEP_COUNT: LifoQueue(maxsize=5),
-            DeviceID.COMPASS: LifoQueue(maxsize=5),
+            DeviceID.ULTRASOUND_FRONT: LifoQueue(),
+            DeviceID.ULTRASOUND_LEFT: LifoQueue(),
+            DeviceID.ULTRASOUND_RIGHT: LifoQueue(),
+            DeviceID.KALMAN_FILTER: LifoQueue(),
+            DeviceID.STEP_COUNT: LifoQueue(),
+            DeviceID.COMPASS: LifoQueue(),
         }
         self.uart = UART(
             uart_device,

@@ -2,11 +2,12 @@ import os
 from threading import Thread
 from Queue import PriorityQueue
 
-COMMAND = 'flite -t {0}'
+COMMAND = 'flite -t "{0}"'
 
 
 class TextToSpeech(Thread):
     def __init__(self):
+        super(TextToSpeech, self).__init__()
         self.queue = PriorityQueue()
 
     def put(self, text, priority=10):
@@ -14,5 +15,5 @@ class TextToSpeech(Thread):
 
     def run(self):
         while True:
-            text = self.queue.get()
+            _, text = self.queue.get()
             os.system(COMMAND.format(text))
