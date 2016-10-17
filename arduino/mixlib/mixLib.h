@@ -11,8 +11,10 @@ class mixLib
 		void initialise();
 		int getURF_inch(void);
 		int getURF_cm(void);
-		int getSR04_Front_cm(void);
-		int getSR04_Left_cm(void);
+		int getSR08_Front(void);
+		int getSR02_Left(void);
+		int getSR02_Right(void);
+
 		int16_t getAccX(void);
 		int16_t getAccY(void);
 		int16_t getAccZ(void);
