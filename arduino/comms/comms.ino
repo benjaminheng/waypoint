@@ -91,6 +91,7 @@ uint16_t UltrasonicArmRight;
 uint16_t UltrasonicFront;
 uint16_t UltrasonicLeft;
 uint16_t UltrasonicRight;
+uint16_t ALTIMUGyroX;
 
 // JQ's Variables
 const uint8_t IMUAddress = 0x6B; // AD0 is logic low on the PCB //initally 68
@@ -135,18 +136,18 @@ void setup() {
   writeReg(LOW_ODR, 0x00);
   writeReg(CTRL_REG4, 0x00);
   writeReg(CTRL_REG1, 0x6F);
-  delay(100); // Wait for sensor to stabilize
-  //Serial.println("WRITEREGFINISH");
-  //compass.init();//UNCOMMENT ME
-  //compass.enableDefault();//UNCOMMENT ME
-  //compass.read();//UNCOMMENT ME
-  //Serial.println("COMPASSINITFINISH");
+  delay(100); // Wait for sensor to stabilize,
+  Serial.println("WRITEREGFINISH");
+  compass.init();//UNCOMMENT ME
+  compass.enableDefault();//UNCOMMENT ME
+  compass.read();//UNCOMMENT ME
+  Serial.println("COMPASSINITFINISH");
   /* Set kalman and gyro starting angle */
-  //while (i2cRead(OUT_X_L | (1 << 7), i2cData, 6)); //UNCOMMENT MEE
+  while (i2cRead(OUT_X_L | (1 << 7), i2cData, 6)); //UNCOMMENT MEE
   
-  //AccX = compass.a.x; //UNCOMMENT ME
-  //AccY = compass.a.y; //UNCOMMENT ME
-  //AccZ = compass.a.z; //UNCOMMENT ME
+  AccX = compass.a.x; //UNCOMMENT ME
+  AccY = compass.a.y; //UNCOMMENT ME
+  AccZ = compass.a.z; //UNCOMMENT ME
   //Serial.println("LINE149");
   
   // Source: http://www.freescale.com/files/sensors/doc/app_note/AN3461.pdf eq. 25 and eq. 26
@@ -268,7 +269,7 @@ void CalcKalman( void *pvParameters ){
   //JQ Kalman processing code
      /* Update all the values */
     
-    /*
+    
     while (i2cRead(OUT_X_L | (1 << 7), i2cData, 14));
     compass.read();
   
@@ -280,7 +281,7 @@ void CalcKalman( void *pvParameters ){
     GyroY = (i2cData[3] << 8) | i2cData[2];
     GyroZ = (i2cData[5] << 8) | i2cData[4];
     
-    */
+    
 
     double dt = (double)(micros() - timer) / 1000000; // Calculate delta time
     timer = micros();
@@ -353,13 +354,14 @@ void CalcKalman( void *pvParameters ){
 
     Serial.print("\t");
     #endif
-    #if 1
+    #if 0
+    Serial.print("i am here");
     Serial.print(roll); Serial.print("\t");  Serial.print(pitch); Serial.print("\t");
     Serial.print("\t");
     Serial.print(gyroXangle); Serial.print("\t");  Serial.print(gyroYangle); Serial.print("\t");
     Serial.print("\t");
     Serial.print(kalAngleX); Serial.print("\t");Serial.print(kalAngleY); Serial.print("\t");
-
+    ALTIMUGyroX = gyroXangle;
     Serial.print("\t");
 
     //  Serial.print(compAngleX); Serial.print("\t");//  Serial.print(compAngleY); Serial.print("\t");
