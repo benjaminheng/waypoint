@@ -20,6 +20,8 @@ Kalman kalmanY;
 
 #define STACKSIZE 256   
 
+#define MAX_BUFFER 25
+
 enum regAddr
 {
        WHO_AM_I       = 0x0F,
@@ -92,7 +94,8 @@ uint16_t UltrasonicFront;
 uint16_t UltrasonicLeft;
 uint16_t UltrasonicRight;
 uint16_t ALTIMUGyroX;
-
+uint16_t Num_step;
+uint16_t Total_dist;
 // JQ's Variables
 const uint8_t IMUAddress = 0x6B; // AD0 is logic low on the PCB //initally 68
 const uint16_t I2C_TIMEOUT = 1000; // Used to check for errors in I2C communication    
@@ -105,11 +108,27 @@ LSM303 compass; // needs to be replaced with
 double gyroXangle, gyroYangle; // Angle calculate using the gyro only
 double compAngleX, compAngleY; // Calculated angle using a complementary filter
 double kalAngleX, kalAngleY; // Calculated angle using a Kalman filter
-
-uint32_t timer;
 uint8_t i2cData[14]; // Buffer for I2C data
     
 int16_t AccX, AccY, AccZ, MagX, MagY, MagZ, GyroX, GyroY, GyroZ; // what about compass?
+
+//declare for step counter
+const int THRESHOLD = 1500;
+const int CHANGING_PERIOD = 1000;
+uint32_t lastChange_time;
+uint32_t timer;
+long x , y , z, xo , yo , zo;
+long mag;
+long buffer_value[3][MAX_BUFFER] = {{0}};
+int pointer = 0;
+double distance = 0.0;
+
+int i;
+long initial_value[3];
+long temp[3]={0};
+int count = 0;
+//endhere
+
 
 
 // the setup function runs once when you press reset or power the board
@@ -125,7 +144,7 @@ void setup() {
     ; // wait for serial port to connect. Needed for native USB, on LEONARDO, MICRO, YUN, and other 32u4 based boards.
   }  
   
-  
+
   // JQ Setup
   Wire.begin();
   #if ARDUINO >= 157
@@ -171,7 +190,13 @@ void setup() {
   timer = micros();
   Serial.println("JQSETUPCOMPLETE");
 
-    
+  //step
+  for( int i = 0 ; i < MAX_BUFFER ; i++)
+  {
+    compass.read();
+    adjusting_buffer(compass.a.x, compass.a.y , compass.a.z);
+  }
+  lastChange_time = millis();
 
   
   xTaskCreate(
@@ -184,8 +209,44 @@ void setup() {
     );
     
   xTaskCreate(
-        ReadUltrasonic
-    ,  (const portCHAR *)"ReadUltrasonic"   
+        ReadUltrasonic1
+    ,  (const portCHAR *)"ReadUltrasonic1"   
+    ,  STACKSIZE  // Stack size
+    ,  NULL
+    ,  1  // priority
+    ,  NULL
+    );
+    
+  xTaskCreate(
+        ReadUltrasonic2
+    ,  (const portCHAR *)"ReadUltrasonic2"   
+    ,  STACKSIZE  // Stack size
+    ,  NULL
+    ,  1  // priority
+    ,  NULL
+    );
+
+  xTaskCreate(
+        ReadUltrasonic3
+    ,  (const portCHAR *)"ReadUltrasonic3"   
+    ,  STACKSIZE  // Stack size
+    ,  NULL
+    ,  1  // priority
+    ,  NULL
+    );
+
+  xTaskCreate(
+        ReadUltrasonic4
+    ,  (const portCHAR *)"ReadUltrasonic4"   
+    ,  STACKSIZE  // Stack size
+    ,  NULL
+    ,  1  // priority
+    ,  NULL
+    );
+
+  xTaskCreate(
+        ReadUltrasonic5
+    ,  (const portCHAR *)"ReadUltrasonic5"   
     ,  STACKSIZE  // Stack size
     ,  NULL
     ,  1  // priority
@@ -222,15 +283,15 @@ void setup() {
     );
         Serial.println("CREATEDCALCSTEPS");
         
-  xTaskCreate(
-        GetCompass
-    ,  "GetCompass"   
-    ,  STACKSIZE  // Stack size
-    ,  NULL
-    ,  1  // priority
-    ,  NULL
-    );
-        Serial.println("CREATEDGETCOMPASS"); 
+//  xTaskCreate(
+//        GetCompass
+//    ,  "GetCompass"   
+//    ,  STACKSIZE  // Stack size
+//    ,  NULL
+//    ,  1  // priority
+//    ,  NULL
+//    );
+//        Serial.println("CREATEDGETCOMPASS"); 
    
    
    
@@ -249,6 +310,7 @@ void loop()
 void ReadIMU( void *pvParameters ){
     Serial.println("INSIDEREADIMU");
     for(;;){
+      
     AccX = MIXLIB.getAccX();
     AccX = MIXLIB.getAccX();
     AccY = MIXLIB.getAccY();
@@ -264,7 +326,6 @@ void ReadIMU( void *pvParameters ){
 
 
 void CalcKalman( void *pvParameters ){
-    Serial.println("INSIDECALCKALMAN");
     for(;;){
   //JQ Kalman processing code
      /* Update all the values */
@@ -380,27 +441,87 @@ void CalcKalman( void *pvParameters ){
   
 }
 
-void GetCompass( void *pvParameters ){
-  for(;;){
-    Serial.println("INSIDECOMPASS");
-  }
-}
+//void GetCompass( void *pvParameters ){
+//  for(;;){
+//    //Serial.println("INSIDECOMPASS");
+//  }
+//}
 
 void CalcSteps( void *pvParameters ){
   //JQ Step counting code
   for(;;){
-  Serial.println("INSIDECALCSTEPS");
+  compass.read(); //load the value from compass and gyro  
+  
+//  double dt = (double)(micros() - timer) / 1000000; // Calculate delta time
+//  timer = micros();
+//  double roll = ola.getAccX();
+//  distance += kalman.getAngle(0,roll-initial_value[0],dt);
+//  Serial.println(distance);
+  xo = compass.a.x;
+  yo = compass.a.y;
+  zo = compass.a.z;
+  adjusting_buffer(xo,yo,zo);
+  
+  x=xo-initial_value[0];
+  y=yo-initial_value[1];
+  z=zo-initial_value[2];
+  Serial.print("here is data for compass: ");
+  Serial.print(x);
+  Serial.print("  :  ");
+  Serial.print(y);
+  Serial.print("  :  ");
+  Serial.print(z);
+  Serial.print("|||||||");
+
+
+  
+  mag = sqrt((x*x) + (y*y)+ (z*z));
+  Serial.print(mag);
+
+  if(mag > THRESHOLD && (millis()-lastChange_time > CHANGING_PERIOD ))
+  {
+    count++;
+    addDistance(x);
+    lastChange_time = millis();
+    
+  }
+  Serial.print("distance : ");
+  Serial.print(distance);
+  Serial.print("  counttttt:");
+  
+  Serial.println(count);
+  Num_step = count;
+  Total_dist = distance;
+  delay(100);
   }
 }
 
-void ReadUltrasonic( void *pvParameters ){
-    //(void) pvParameters;
-    
+void ReadUltrasonic1( void *pvParameters ){
     for(;;){
       UltrasonicArmLeft = MIXLIB.getSR04_ArmLeft_cm();
+    }
+}
+
+void ReadUltrasonic2( void *pvParameters ){
+    for(;;){
       UltrasonicArmRight = MIXLIB.getSR04_ArmRight_cm();
+    }
+}
+
+void ReadUltrasonic3( void *pvParameters ){
+    for(;;){
       UltrasonicFront = MIXLIB.getSR08_Front();
+    }
+}
+
+void ReadUltrasonic4( void *pvParameters ){
+    for(;;){
       UltrasonicLeft = MIXLIB.getSR02_Left();
+    }
+}
+
+void ReadUltrasonic5( void *pvParameters ){   
+    for(;;){
       UltrasonicRight = MIXLIB.getSR02_Right();
     }
 }
@@ -418,11 +539,11 @@ void SendToPi( void *pvParameters ){
       devices[2].id = 3;
       devices[2].data = UltrasonicRight;
       devices[3].id = 4;
-      devices[3].data = 0x3344;
+      devices[3].data = Total_dist;
       devices[4].id = 5;
-      devices[4].data = 0xEEFF;
+      devices[4].data = Num_step;
       devices[5].id = 6;
-      devices[5].data = 0x5566;
+      devices[5].data = ALTIMUGyroX;
       uint8_t numDevices = sizeof(devices) / sizeof(devices[0]);
       sendData(PACKET_TYPE_DATA, devices, numDevices);
     }
@@ -536,3 +657,43 @@ uint8_t i2cRead(uint8_t registerAddress, uint8_t *data, uint8_t nbytes) {
   return 0; // Success
 }
 
+
+void addDistance(long x)
+{
+  double rate = abs(x)/1000.0;
+  if(abs(x) > 1000)
+  {
+    distance = distance + (0.4*rate);
+    
+  }
+  else
+  {
+    distance = distance + 0.4;
+  }
+}
+
+void adjusting_buffer(long xo , long yo, long zo)
+{
+  buffer_value[0][pointer] = xo;
+  buffer_value[1][pointer] = yo;
+  buffer_value[2][pointer] = zo;
+  pointer++;
+  if( pointer == MAX_BUFFER)
+  {
+    pointer = 0;
+    
+  }
+      for(int i = 0; i < MAX_BUFFER ; i ++)
+    {
+      temp[0] = temp[0] + buffer_value[0][i];
+      temp[1] = temp[1] + buffer_value[1][i];
+      temp[2] = temp[2] + buffer_value[2][i];
+    }
+    for(int i = 0 ; i < 3 ; i++)
+    {
+      initial_value[i] = temp[i] / MAX_BUFFER;
+      temp[i] = 0;
+    }
+
+  
+}
