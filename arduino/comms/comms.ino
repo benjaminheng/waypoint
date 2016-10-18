@@ -86,7 +86,8 @@ typedef struct DevicePayload
     uint16_t data;
 };
 
-
+uint16_t UltrasonicArmLeft;
+uint16_t UltrasonicArmRight;
 uint16_t UltrasonicFront;
 uint16_t UltrasonicLeft;
 uint16_t UltrasonicRight;
@@ -394,9 +395,11 @@ void ReadUltrasonic( void *pvParameters ){
     //(void) pvParameters;
     
     for(;;){
-      UltrasonicFront = MIXLIB.getSR04_Front_cm();
-      UltrasonicLeft = MIXLIB.getSR04_Left_cm();
-      UltrasonicRight = 0x5667;//MIXLIB.getSR04_cm();
+      UltrasonicArmLeft = MIXLIB.getSR04_ArmLeft_cm();
+      UltrasonicArmRight = MIXLIB.getSR04_ArmRight_cm();
+      UltrasonicFront = MIXLIB.getSR08_Front();
+      UltrasonicLeft = MIXLIB.getSR02_Left();
+      UltrasonicRight = MIXLIB.getSR02_Right();
     }
 }
 
@@ -411,7 +414,7 @@ void SendToPi( void *pvParameters ){
       devices[1].id = 2;
       devices[1].data = UltrasonicLeft;
       devices[2].id = 3;
-      devices[2].data = 0xCCDD;
+      devices[2].data = UltrasonicRight;
       devices[3].id = 4;
       devices[3].data = 0x3344;
       devices[4].id = 5;
