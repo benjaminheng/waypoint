@@ -2,6 +2,7 @@ import requests
 import heapq
 import re
 from waypoint.settings import FLOORPLAN_URL, BUILDINGS
+from waypoint.navigation.heading import calculate_turn_direction
 from waypoint.utils.logger import get_logger
 
 LINK_RE = re.compile('TO (?P<building>\w+)-(?P<level>\d+)-(?P<node>\d+)')
@@ -53,6 +54,10 @@ class Node(object):
         self.level = level
         self.building = building
 
+    @classmethod
+    def get_node_id(self, building, level, node_id):
+        return '{0}_{1}_{2}'.format(building, level, node_id)
+
     def _get_node_id(self, building, level, node_id):
         return '{0}_{1}_{2}'.format(building, level, node_id)
 
@@ -65,11 +70,36 @@ class Node(object):
         return self.__str__()
 
 
+class PlayerNode(Node):
+    def __init__(self):
+        self.heading = None
+        self.id = 'PLAYER'
+        self.name = 'PLAYER'
+        self.adjacent = None
+        self.x = None
+        self.y = None
+
+    def set_position(self, x, y, level=None, building=None):
+        self.x = x
+        self.y = y
+        if level:
+            self.level = level
+        if building:
+            self.building = building
+
+    def set_heading(self, heading):
+        self.heading = heading
+
+
 class Map(object):
     def __init__(self, buildings=BUILDINGS):
         self.north_map = {}
         self.nodes = {}
         self.graph = Graph()
+        self.player = PlayerNode()
+
+        self.path = []          # Path to take to get to destination
+        self.next_node = None   # Next node to hit
 
         self.download_floorplans(buildings)
         self.init_graph()
@@ -93,6 +123,9 @@ class Map(object):
 
     def _get_map_key(self, building, level):
         return '{0}_{1}'.format(building, level)
+
+    def is_valid_node(self, node_id):
+        return node_id in self.nodes
 
     def download_floorplans(self, buildings):
         for building, levels in buildings.items():
@@ -185,4 +218,27 @@ class Map(object):
                     frontier.put(next, priority)
                     came_from[next] = current
 
+        self.init_path(start, goal, came_from)
         return came_from, cost_so_far
+
+    def init_path(self, start, goal, came_from):
+        current = goal
+        current_node = self.nodes.get(current)
+        self.path = [current_node]
+        while current != start:
+            current = came_from[current]
+            current_node = self.nodes.get(current)
+            self.path.append(current_node)
+        self.path.reverse()
+
+    def calculate_player_turn_direction(self):
+        map_key = self._get_map_key(self.player.building, self.player.level)
+        turn = calculate_turn_direction(
+            self.player.x,
+            self.player.y,
+            self.next_node.x,
+            self.next_node.y,
+            self.player.heading,
+            self.north_map.get(map_key)
+        )
+        return turn
