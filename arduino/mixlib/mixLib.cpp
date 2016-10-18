@@ -107,24 +107,24 @@ int mixLib::getSR04_ArmLeft_cm()
 
 int mixLib::getSR04_ArmRight()
 {
-	digitalWrite(PIN_TRIG_SR04_FRONT, LOW);
+	digitalWrite(PIN_TRIG_SR04_ARM_RIGHT, LOW);
 	delayMicroseconds(5);
-	digitalWrite(PIN_TRIG_SR04_FRONT, HIGH);
+	digitalWrite(PIN_TRIG_SR04_ARM_RIGHT, HIGH);
 	delayMicroseconds(10);
-	digitalWrite(PIN_TRIG_SR04_FRONT, LOW);
+	digitalWrite(PIN_TRIG_SR04_ARM_RIGHT, LOW);
 
-	return pulseIn(PIN_ECHO_SR04_FRONT,HIGH);
+	return pulseIn(PIN_ECHO_SR04_ARM_RIGHT,HIGH);
 }
 
 int mixLib::getSR04_ArmLeft()
 {
-	digitalWrite(PIN_TRIG_SR04_LEFT, LOW);
+	digitalWrite(PIN_TRIG_SR04_ARM_LEFT, LOW);
 	delayMicroseconds(5);
-	digitalWrite(PIN_TRIG_SR04_LEFT, HIGH);
+	digitalWrite(PIN_TRIG_SR04_ARM_LEFT, HIGH);
 	delayMicroseconds(10);
-	digitalWrite(PIN_TRIG_SR04_LEFT, LOW);
+	digitalWrite(PIN_TRIG_SR04_ARM_LEFT, LOW);
 
-	return pulseIn(PIN_ECHO_SR04_LEFT,HIGH);
+	return pulseIn(PIN_ECHO_SR04_ARM_LEFT,HIGH);
 }
 
 int mixLib::getSR08_Front()
