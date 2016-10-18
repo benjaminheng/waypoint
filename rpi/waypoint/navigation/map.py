@@ -1,7 +1,10 @@
+import math
 import requests
 import heapq
 import re
-from waypoint.settings import FLOORPLAN_URL, BUILDINGS
+from waypoint.settings import (
+    FLOORPLAN_URL, BUILDINGS, NODE_PROXIMITY_THRESHOLD
+)
 from waypoint.navigation.heading import calculate_turn_direction
 from waypoint.utils.logger import get_logger
 
@@ -87,6 +90,14 @@ class PlayerNode(Node):
         if building:
             self.building = building
 
+    def set_position_to_node(self, node):
+        self.set_position(
+            x=node.x,
+            y=node.y,
+            level=node.level,
+            building=node.building
+        )
+
     def set_heading(self, heading):
         self.heading = heading
 
@@ -155,6 +166,14 @@ class Map(object):
                         building
                     )
                     self.nodes[node.id] = node
+
+    def is_player_near_next_node(self):
+        x = abs(self.player.x - self.next_node.x)
+        y = abs(self.player.y - self.next_node.y)
+        distance = math.hypot(x, y)
+        if distance <= NODE_PROXIMITY_THRESHOLD:
+            return True
+        return False
 
     def init_graph(self):
         for node_id in self.nodes:

@@ -33,7 +33,7 @@ class Comms(Thread):
             DeviceID.ULTRASOUND_LEFT: deque(maxlen=5),
             DeviceID.ULTRASOUND_RIGHT: deque(maxlen=5),
             DeviceID.KALMAN_FILTER: deque(maxlen=5),
-            DeviceID.STEP_COUNT: deque(maxlen=5),
+            DeviceID.STEP_COUNT: deque(maxlen=1),
             DeviceID.COMPASS: deque(maxlen=5),
         }
         self.uart = UART(
@@ -45,7 +45,10 @@ class Comms(Thread):
 
     def get_packet(self, device):
         if device in self.device_queue:
-            return self.device_queue(device).popleft()
+            try:
+                return self.device_queue.get(device).popleft()
+            except:
+                return None
         return None
 
     def run(self):
@@ -63,11 +66,11 @@ class Comms(Thread):
                         packets = Packet.deserialize(data)
                         for packet in packets:
                             self.device_queue[packet.device_id].append(packet)
-                        logger.debug(
-                            '\t'.join(
-                                '{0}, {1}'.format(p.device_id, p.data)
-                                for p in packets
-                            )
-                        )
+                        # logger.debug(
+                        #     '\t'.join(
+                        #         '{0}, {1}'.format(p.device_id, p.data)
+                        #         for p in packets
+                        #     )
+                        # )
             except Exception as e:
                 logger.warning('{0}: {1}'.format(type(e).__name__, e))
