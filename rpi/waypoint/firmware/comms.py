@@ -1,6 +1,6 @@
 import serial
 import io
-from Queue import LifoQueue
+from collections import deque
 from threading import Thread
 from waypoint.utils.logger import get_logger
 from waypoint.firmware.packet import Packet, PacketType, DeviceID
@@ -29,12 +29,12 @@ class Comms(Thread):
                  timeout=None, **kwargs):
         super(Comms, self).__init__()
         self.device_queue = {
-            DeviceID.ULTRASOUND_FRONT: LifoQueue(),
-            DeviceID.ULTRASOUND_LEFT: LifoQueue(),
-            DeviceID.ULTRASOUND_RIGHT: LifoQueue(),
-            DeviceID.KALMAN_FILTER: LifoQueue(),
-            DeviceID.STEP_COUNT: LifoQueue(),
-            DeviceID.COMPASS: LifoQueue(),
+            DeviceID.ULTRASOUND_FRONT: deque(maxlen=5),
+            DeviceID.ULTRASOUND_LEFT: deque(maxlen=5),
+            DeviceID.ULTRASOUND_RIGHT: deque(maxlen=5),
+            DeviceID.KALMAN_FILTER: deque(maxlen=5),
+            DeviceID.STEP_COUNT: deque(maxlen=5),
+            DeviceID.COMPASS: deque(maxlen=5),
         }
         self.uart = UART(
             uart_device,
@@ -42,6 +42,11 @@ class Comms(Thread):
             timeout=timeout,
             **kwargs
         )
+
+    def get_packet(self, device):
+        if device in self.device_queue:
+            return self.device_queue(device).popleft()
+        return None
 
     def run(self):
         """Communication protocol implemented as a thread.
@@ -57,7 +62,7 @@ class Comms(Thread):
                     if packet_type == PacketType.DATA:
                         packets = Packet.deserialize(data)
                         for packet in packets:
-                            self.device_queue[packet.device_id].put(packet)
+                            self.device_queue[packet.device_id].append(packet)
                         logger.debug(
                             '\t'.join(
                                 '{0}, {1}'.format(p.device_id, p.data)

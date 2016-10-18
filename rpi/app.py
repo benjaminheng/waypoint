@@ -42,8 +42,8 @@ def prompt_for_path(nav_map):
 
 if __name__ == '__main__':
     logger.info('Starting Waypoint')
-    comms = Comms('/dev/ttyAMA0')
-    comms.start()
+    # comms = Comms('/dev/ttyAMA0')
+    # comms.start()
     speech = TextToSpeech()
     speech.daemon = True
     speech.start()
@@ -71,6 +71,6 @@ if __name__ == '__main__':
     logger.info('Initial orientation: {0}'.format(turn))
 
     while True:
-        # packet = comms.device_queue.get(DeviceID.ULTRASOUND_FRONT).get()
+        # packet = comms.get_packet(DeviceID.ULTRASOUND_FRONT)
         # logger.info(packet)
         time.sleep(1)
