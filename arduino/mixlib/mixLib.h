@@ -11,10 +11,12 @@ class mixLib
 		void initialise();
 		int getURF_inch(void);
 		int getURF_cm(void);
+		int getSR04_ArmRight_cm(void);
+		int getSR04_ArmLeft_cm(void);
 		int getSR08_Front(void);
 		int getSR02_Left(void);
 		int getSR02_Right(void);
-
+		
 		int16_t getAccX(void);
 		int16_t getAccY(void);
 		int16_t getAccZ(void);
@@ -32,8 +34,8 @@ class mixLib
 		LSM303 compass;
 		L3G gyro;
 		int getURF(void);
-		int getSR04_Front(void);
-		int getSR04_Left(void);
+		int getSR04_ArmRight(void);
+		int getSR04_ArmLeft(void);
 
 };
 

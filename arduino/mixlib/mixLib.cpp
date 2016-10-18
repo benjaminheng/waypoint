@@ -4,10 +4,10 @@
 #include "L3G.h"
 #include "Wire.h"
 #define PIN_URF 10
-#define PIN_ECHO_SR04_FRONT 40
-#define PIN_TRIG_SR04_FRONT 41
-#define PIN_ECHO_SR04_LEFT 28
-#define PIN_TRIG_SR04_LEFT 29
+#define PIN_ECHO_SR04_ARM_RIGHT 40
+#define PIN_TRIG_SR04_ARM_RIGHT 41
+#define PIN_ECHO_SR04_ARM_LEFT 28
+#define PIN_TRIG_SR04_ARM_LEFT 29
 
 
 mixLib::mixLib(void)
@@ -17,10 +17,10 @@ mixLib::mixLib(void)
 void mixLib::initialise()
 {
 	pinMode(PIN_URF,INPUT);
-	pinMode(PIN_ECHO_SR04_FRONT,INPUT);
-	pinMode(PIN_TRIG_SR04_FRONT,OUTPUT);
-	pinMode(PIN_ECHO_SR04_LEFT,INPUT);
-	pinMode(PIN_TRIG_SR04_LEFT,OUTPUT);
+	pinMode(PIN_ECHO_SR04_ARM_RIGHT,INPUT);
+	pinMode(PIN_TRIG_SR04_ARM_RIGHT,OUTPUT);
+	pinMode(PIN_ECHO_SR04_ARM_LEFT,INPUT);
+	pinMode(PIN_TRIG_SR04_ARM_LEFT,OUTPUT);
 	Wire.begin();
 	compass.init();
 	compass.enableDefault();
@@ -95,6 +95,37 @@ int mixLib::getURF()
 	return pulseIn(PIN_URF,HIGH);
 }
 
+int mixLib::getSR04_ArmRight_cm()
+{
+	return (getSR04_ArmRight()/2) / 29.1; 
+}
+
+int mixLib::getSR04_ArmLeft_cm()
+{
+	return (getSR04_ArmLeft()/2) / 29.1; 
+}
+
+int mixLib::getSR04_ArmRight()
+{
+	digitalWrite(PIN_TRIG_SR04_FRONT, LOW);
+	delayMicroseconds(5);
+	digitalWrite(PIN_TRIG_SR04_FRONT, HIGH);
+	delayMicroseconds(10);
+	digitalWrite(PIN_TRIG_SR04_FRONT, LOW);
+
+	return pulseIn(PIN_ECHO_SR04_FRONT,HIGH);
+}
+
+int mixLib::getSR04_ArmLeft()
+{
+	digitalWrite(PIN_TRIG_SR04_LEFT, LOW);
+	delayMicroseconds(5);
+	digitalWrite(PIN_TRIG_SR04_LEFT, HIGH);
+	delayMicroseconds(10);
+	digitalWrite(PIN_TRIG_SR04_LEFT, LOW);
+
+	return pulseIn(PIN_ECHO_SR04_LEFT,HIGH);
+}
 
 int mixLib::getSR08_Front()
 {
