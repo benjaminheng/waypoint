@@ -8,6 +8,9 @@ Kalman kalmanY;
 
 #define RESTRICT_PITCH // Comment out to restrict roll to ±90deg instead - please read: http://www.freescale.com/files/sensors/doc/app_note/AN3461.pdf
 
+#define MOTOR_LEFT 26
+#define MOTOR_RIGHT 27
+
 #define CHECKSUM_BYTES 1
 #define EOL_BYTES 2
 
@@ -506,12 +509,22 @@ void CalcSteps( void *pvParameters ){
 void ReadUltrasonic1( void *pvParameters ){
     for(;;){
       UltrasonicArmLeft = MIXLIB.getSR04_ArmLeft_cm();
+      if(UltrasonicArmLeft > 30) {
+        digitalWrite(MOTOR_LEFT, HIGH);  
+      } else {
+        digitalWrite(MOTOR_LEFT, LOW);
+      }
     }
 }
 
 void ReadUltrasonic2( void *pvParameters ){
     for(;;){
       UltrasonicArmRight = MIXLIB.getSR04_ArmRight_cm();
+      if(UltrasonicArmRight > 30) {
+        digitalWrite(MOTOR_RIGHT, HIGH);  
+      } else {
+        digitalWrite(MOTOR_RIGHT, LOW);
+      }
     }
 }
 

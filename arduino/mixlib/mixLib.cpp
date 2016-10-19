@@ -4,10 +4,10 @@
 #include "L3G.h"
 #include "Wire.h"
 #define PIN_URF 10
-#define PIN_ECHO_SR04_ARM_RIGHT 40
-#define PIN_TRIG_SR04_ARM_RIGHT 41
-#define PIN_ECHO_SR04_ARM_LEFT 28
-#define PIN_TRIG_SR04_ARM_LEFT 29
+#define PIN_ECHO_SR04_ARM_RIGHT 25
+#define PIN_TRIG_SR04_ARM_RIGHT 24
+#define PIN_ECHO_SR04_ARM_LEFT 23
+#define PIN_TRIG_SR04_ARM_LEFT 22
 
 
 mixLib::mixLib(void)
