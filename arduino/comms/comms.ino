@@ -96,6 +96,7 @@ uint16_t UltrasonicRight;
 uint16_t ALTIMUGyroX;
 uint16_t Num_step;
 uint16_t Total_dist;
+uint16_t Bearing;
 // JQ's Variables
 const uint8_t IMUAddress = 0x6B; // AD0 is logic low on the PCB //initally 68
 const uint16_t I2C_TIMEOUT = 1000; // Used to check for errors in I2C communication    
@@ -160,6 +161,11 @@ void setup() {
   compass.init();//UNCOMMENT ME
   compass.enableDefault();//UNCOMMENT ME
   compass.read();//UNCOMMENT ME
+
+  //calibrating
+  compass.m_min = (LSM303::vector<int16_t>){-32767, -32767, -32767};
+  compass.m_max = (LSM303::vector<int16_t>){+32767, +32767, +32767};
+  
   Serial.println("COMPASSINITFINISH");
   /* Set kalman and gyro starting angle */
   while (i2cRead(OUT_X_L | (1 << 7), i2cData, 6)); //UNCOMMENT MEE
@@ -441,11 +447,12 @@ void CalcKalman( void *pvParameters ){
   
 }
 
-//void GetCompass( void *pvParameters ){
-//  for(;;){
-//    //Serial.println("INSIDECOMPASS");
-//  }
-//}
+void GetCompass( void *pvParameters ){
+  for(;;){
+    compass.read();
+    Bearing = compass.heading();
+  }
+}
 
 void CalcSteps( void *pvParameters ){
   //JQ Step counting code
@@ -543,7 +550,7 @@ void SendToPi( void *pvParameters ){
       devices[4].id = 5;
       devices[4].data = Num_step;
       devices[5].id = 6;
-      devices[5].data = ALTIMUGyroX;
+      devices[5].data = Bearing;
       uint8_t numDevices = sizeof(devices) / sizeof(devices[0]);
       sendData(PACKET_TYPE_DATA, devices, numDevices);
     }
