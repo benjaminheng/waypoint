@@ -5,10 +5,13 @@ import re
 from waypoint.settings import (
     FLOORPLAN_URL, BUILDINGS, NODE_PROXIMITY_THRESHOLD
 )
-from waypoint.navigation.heading import calculate_turn_direction
+from waypoint.navigation.heading import (
+    calculate_turn_direction, is_pointing_to_node
+)
 from waypoint.utils.logger import get_logger
 
 LINK_RE = re.compile('TO (?P<building>\w+)-(?P<level>\d+)-(?P<node>\d+)')
+BUILDING_RE = re.compile('(?P<building>COM)(?P<building_id>\d+)')
 
 logger = get_logger(__name__)
 
@@ -56,6 +59,23 @@ class Node(object):
         self.adjacent = adjacent
         self.level = level
         self.building = building
+
+    @property
+    def components(self):
+        """Returns the building, level, and ID of the node for speech."""
+        return self.id.split('_')
+
+    @property
+    def audio_components(self):
+        building, level, node = self.components
+        try:
+            match = BUILDING_RE.match(building)
+            building_name = match.group('building')
+            building_id = match.group('building_id')
+            building = '{0}, {1}'.format(building_name, building_id)
+        except:
+            pass
+        return building, level, node
 
     @classmethod
     def get_node_id(self, building, level, node_id):
@@ -174,6 +194,18 @@ class Map(object):
         if distance <= NODE_PROXIMITY_THRESHOLD:
             return True
         return False
+
+    def is_player_facing_next_node(self):
+        map_key = self._get_map_key(self.player.building, self.player.level)
+        north = self.north_map.get(map_key)
+        return is_pointing_to_node(
+            from_x=self.player.x,
+            from_y=self.player.y,
+            to_x=self.next_node.x,
+            to_y=self.next_node.y,
+            heading=self.player.heading,
+            north=north
+        )
 
     def init_graph(self):
         for node_id in self.nodes:

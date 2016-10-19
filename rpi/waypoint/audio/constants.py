@@ -2,15 +2,19 @@ SELECT_START_NODE = 'Select your current position'
 SELECT_END_NODE = 'Select your destination'
 SELECT_CONFIRMATION = 'You have selected {0}, {1}, {2}, and {3}, {4}, {5}'
 INVALID_NODE = 'Invalid selection: {0}, {1}, {2}'
+INITIAL_ORIENTATION = 'Please turn to face the next location'
 
 # 90 degree turns
-TURN_LEFT = 'Turn left'
-TURN_RIGHT = 'Turn right'
-# 45 degree turns
-TURN_LEFT_HALF = 'Turn half left'
-TURN_RIGHT_HALF = 'Turn half right'
+TURN = '{0}'
+TURN_SLIGHTLY = 'Slight {0}'
+TURN_BY_DEGREES = 'Turn {0} {1} degrees'
 
-OBSTACLE_DETECTED = 'Obstacle detected'
-PROCEED_FORWARD = 'Proceed forward {0} steps'
+STOP = 'Stop!'
+OBSTACLE_DETECTED = 'Obstacle'
+OBSTACLE_CLEARED = 'Obstacle cleared. Proceed forward.'
+PROCEED_FORWARD = 'Proceed forward.'
 DESTINATION_REACHED = 'Destination reached'
 STAIRCASE_AHEAD = 'Staircase ahead'
+CURRENT_POSITION = 'You are at {0}, {1}, {2}'
+
+YOU_ARE_THE_BEST = 'Congratulations. You are the best.'
