@@ -21,7 +21,7 @@ Kalman kalmanY;
 
 #define DEVICE_PAYLOAD_SIZE 3
 
-#define STACKSIZE 256   
+#define STACKSIZE 512   
 
 #define MAX_BUFFER 25
 
@@ -99,7 +99,7 @@ uint16_t UltrasonicRight;
 uint16_t ALTIMUGyroX;
 uint16_t Num_step;
 uint16_t Total_dist;
-uint16_t Bearing;
+uint16_t heading;
 // JQ's Variables
 const uint8_t IMUAddress = 0x6B; // AD0 is logic low on the PCB //initally 68
 const uint16_t I2C_TIMEOUT = 1000; // Used to check for errors in I2C communication    
@@ -117,7 +117,7 @@ uint8_t i2cData[14]; // Buffer for I2C data
 int16_t AccX, AccY, AccZ, MagX, MagY, MagZ, GyroX, GyroY, GyroZ; // what about compass?
 
 //declare for step counter
-const int THRESHOLD = 1500;
+const int THRESHOLD = 1300;
 const int CHANGING_PERIOD = 1000;
 uint32_t lastChange_time;
 uint32_t timer;
@@ -292,15 +292,15 @@ void setup() {
     );
         Serial.println("CREATEDCALCSTEPS");
         
-//  xTaskCreate(
-//        GetCompass
-//    ,  "GetCompass"   
-//    ,  STACKSIZE  // Stack size
-//    ,  NULL
-//    ,  1  // priority
-//    ,  NULL
-//    );
-//        Serial.println("CREATEDGETCOMPASS"); 
+  xTaskCreate(
+        GetCompass
+    ,  "GetCompass"   
+    ,  STACKSIZE  // Stack size
+    ,  NULL
+    ,  1  // priority
+    ,  NULL
+    );
+        Serial.println("CREATEDGETCOMPASS"); 
    
    
    
@@ -452,8 +452,10 @@ void CalcKalman( void *pvParameters ){
 
 void GetCompass( void *pvParameters ){
   for(;;){
+    Serial.println("I GOT INNNNNNNNNNNNNNNNNNNNNNNNN");
     compass.read();
-    Bearing = compass.heading();
+    heading = compass.heading();
+    Serial.println("I READ THE COMPASS");
   }
 }
 
@@ -475,18 +477,16 @@ void CalcSteps( void *pvParameters ){
   x=xo-initial_value[0];
   y=yo-initial_value[1];
   z=zo-initial_value[2];
-  Serial.print("here is data for compass: ");
-  Serial.print(x);
-  Serial.print("  :  ");
-  Serial.print(y);
-  Serial.print("  :  ");
-  Serial.print(z);
-  Serial.print("|||||||");
-
-
+//  Serial.print("here is data for compass: ");
+//  Serial.print(x);
+//  Serial.print("  :  ");
+//  Serial.print(y);
+//  Serial.print("  :  ");
+//  Serial.print(z);
+//  Serial.print("|||||||");
   
   mag = sqrt((x*x) + (y*y)+ (z*z));
-  Serial.print(mag);
+  //Serial.print(mag);
 
   if(mag > THRESHOLD && (millis()-lastChange_time > CHANGING_PERIOD ))
   {
@@ -495,11 +495,10 @@ void CalcSteps( void *pvParameters ){
     lastChange_time = millis();
     
   }
-  Serial.print("distance : ");
-  Serial.print(distance);
-  Serial.print("  counttttt:");
-  
-  Serial.println(count);
+  //Serial.print("distance : ");
+  //Serial.print(distance);
+  //Serial.print("  counttttt:");
+  //Serial.println(count);
   Num_step = count;
   Total_dist = distance;
   delay(100);
@@ -563,7 +562,7 @@ void SendToPi( void *pvParameters ){
       devices[4].id = 5;
       devices[4].data = Num_step;
       devices[5].id = 6;
-      devices[5].data = Bearing;
+      devices[5].data = heading;
       uint8_t numDevices = sizeof(devices) / sizeof(devices[0]);
       sendData(PACKET_TYPE_DATA, devices, numDevices);
     }
