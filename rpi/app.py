@@ -273,6 +273,10 @@ if __name__ == '__main__':
                 else:
                     nav_map.next_node = nav_map.path.pop(0)
 
+                # Check if player needs to be reoriented after reaching node
+                reorient_player(speech, nav_map, comms)
+                is_stopped = False
+
         compass = comms.get_packet(DeviceID.COMPASS)
         if compass:
             nav_map.player.set_heading(compass.data)
