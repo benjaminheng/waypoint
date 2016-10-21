@@ -25,6 +25,14 @@ Kalman kalmanY;
 
 #define MAX_BUFFER 25
 
+//define for compass reset
+#define MAXCOMPASS 10
+uint16_t compassBuffer[MAXCOMPASS];
+int pointerBuffer =0;
+int compassCount;
+
+
+
 enum regAddr
 {
        WHO_AM_I       = 0x0F,
@@ -96,7 +104,7 @@ uint16_t UltrasonicArmRight;
 uint16_t UltrasonicFront;
 uint16_t UltrasonicLeft;
 uint16_t UltrasonicRight;
-uint16_t ALTIMUGyroX;
+//uint16_t ALTIMUGyroX; //output from Kalman task
 uint16_t Num_step;
 uint16_t Total_dist;
 uint16_t heading;
@@ -163,7 +171,7 @@ void setup() {
   Serial.println("WRITEREGFINISH");
   compass.init();//UNCOMMENT ME
   compass.enableDefault();//UNCOMMENT ME
-  compass.read();//UNCOMMENT ME
+  //compass.read();//UNCOMMENT ME
 
   //calibrating
   compass.m_min = (LSM303::vector<int16_t>){-32767, -32767, -32767};
@@ -262,25 +270,25 @@ void setup() {
     ,  NULL
     );
     
-  xTaskCreate(
-      ReadIMU
-    ,  "ReadIMU"   
-    ,  STACKSIZE  // Stack size
-    ,  NULL
-    ,  1  // priority
-    ,  NULL
-    );
-      Serial.println("CREATEDREADIMU");
+//  xTaskCreate(
+//      ReadIMU
+//    ,  "ReadIMU"   
+//    ,  STACKSIZE  // Stack size
+//    ,  NULL
+//    ,  1  // priority
+//    ,  NULL
+//    );
+//      Serial.println("CREATEDREADIMU");
    
-    xTaskCreate(
-        CalcKalman
-    ,  "CalcKalman"   
-    ,  STACKSIZE  // Stack size
-    ,  NULL
-    ,  1  // priority
-    ,  NULL
-    );
-      Serial.println("CREATEDCALCKALMAN");
+//    xTaskCreate(
+//        CalcKalman
+//    ,  "CalcKalman"   
+//    ,  STACKSIZE  // Stack size
+//    ,  NULL
+//    ,  1  // priority
+//    ,  NULL
+//    );
+//      Serial.println("CREATEDCALCKALMAN");
       
   xTaskCreate(
         CalcSteps
@@ -316,146 +324,164 @@ void loop()
 /*---------------------- Tasks ---------------------*/
 /*--------------------------------------------------*/
 
-void ReadIMU( void *pvParameters ){
-    Serial.println("INSIDEREADIMU");
-    for(;;){
-      
-    AccX = MIXLIB.getAccX();
-    AccX = MIXLIB.getAccX();
-    AccY = MIXLIB.getAccY();
-    AccZ = MIXLIB.getAccZ();
-    MagX = MIXLIB.getMagX();
-    MagY = MIXLIB.getMagY();
-    MagZ = MIXLIB.getMagZ();
-    GyroX = MIXLIB.getGyroX();
-    GyroY = MIXLIB.getGyroY();
-    GyroZ = MIXLIB.getGyroZ();
-    }
-}
+//void ReadIMU( void *pvParameters ){
+//    Serial.println("INSIDEREADIMU");
+//    for(;;){
+//      
+//    AccX = MIXLIB.getAccX();
+//    AccX = MIXLIB.getAccX();
+//    AccY = MIXLIB.getAccY();
+//    AccZ = MIXLIB.getAccZ();
+//    MagX = MIXLIB.getMagX();
+//    MagY = MIXLIB.getMagY();
+//    MagZ = MIXLIB.getMagZ();
+//    GyroX = MIXLIB.getGyroX();
+//    GyroY = MIXLIB.getGyroY();
+//    GyroZ = MIXLIB.getGyroZ();
+//    }
+//}
 
 
-void CalcKalman( void *pvParameters ){
-    for(;;){
-  //JQ Kalman processing code
-     /* Update all the values */
-    
-    
-    while (i2cRead(OUT_X_L | (1 << 7), i2cData, 14));
-    compass.read();
-  
-    AccX = compass.a.x;
-    AccY = compass.a.y;
-    AccZ = compass.a.z;
-    
-    GyroX = (i2cData[1] << 8) | i2cData[0];
-    GyroY = (i2cData[3] << 8) | i2cData[2];
-    GyroZ = (i2cData[5] << 8) | i2cData[4];
-    
-    
-
-    double dt = (double)(micros() - timer) / 1000000; // Calculate delta time
-    timer = micros();
-
-    // Source: http://www.freescale.com/files/sensors/doc/app_note/AN3461.pdf eq. 25 and eq. 26
-    // atan2 outputs the value of -π to π (radians) - see         http://en.wikipedia.org/wiki/Atan2
-    // It is then converted from radians to degrees
-    #ifdef RESTRICT_PITCH // Eq. 25 and 26
-    double roll  = atan2(AccY, AccZ) * RAD_TO_DEG;
-    double pitch = atan(-AccX / sqrt(AccY * AccY + AccZ * AccZ)) * RAD_TO_DEG;
-    #else // Eq. 28 and 29
-    double roll  = atan(AccY / sqrt(AccX * AccX + AccZ * AccZ)) * RAD_TO_DEG;
-    double pitch = atan2(-AccX, AccZ) * RAD_TO_DEG;
-    #endif
-
-    double gyroXrate = GyroX / 131.0; // Convert to deg/s
-    double gyroYrate = GyroY / 131.0; // Convert to deg/s
-
-    #ifdef RESTRICT_PITCH
-    // This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees
-    if ((roll < -90 && kalAngleX > 90) || (roll > 90 && kalAngleX < -90)) {
-        kalmanX.setAngle(roll);
-        compAngleX = roll;
-        kalAngleX = roll;
-        gyroXangle = roll;
-    } else
-        kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
-
-    if (abs(kalAngleX) > 90)
-        gyroYrate = -gyroYrate; // Invert rate, so it fits the restriced accelerometer reading
-    kalAngleY = kalmanY.getAngle(pitch, gyroYrate, dt);
-        #else
-    // This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees
-    if ((pitch < -90 && kalAngleY > 90) || (pitch > 90 && kalAngleY < -90)) {
-        kalmanY.setAngle(pitch);
-        compAngleY = pitch;
-        kalAngleY = pitch;
-        gyroYangle = pitch;
-    } else
-        alAngleY = kalmanY.getAngle(pitch, gyroYrate, dt); // Calculate the angle using a Kalman filter
-
-    if (abs(kalAngleY) > 90)
-        gyroXrate = -gyroXrate; // Invert rate, so it fits the restriced accelerometer reading
-        kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
-    #endif
-
-    gyroXangle += gyroXrate * dt; // Calculate gyro angle without any filter
-    gyroYangle += gyroYrate * dt;
-    //gyroXangle += kalmanX.getRate() * dt; // Calculate gyro angle using the unbiased rate
-    //gyroYangle += kalmanY.getRate() * dt;
-
-    compAngleX = 0.93 * (compAngleX + gyroXrate * dt) + 0.07 * roll; // Calculate the angle using a Complimentary filter
-    compAngleY = 0.93 * (compAngleY + gyroYrate * dt) + 0.07 * pitch;
-
-  // Reset the gyro angle when it has drifted too much
-    if (gyroXangle < -180 || gyroXangle > 180)
-        gyroXangle = kalAngleX;
-    if (gyroYangle < -180 || gyroYangle > 180)
-        gyroYangle = kalAngleY;
-
-  /* Print Data */
-    #if 0 // Set to 1 to activate
-    Serial.print(AccX); Serial.print("\t");
-    Serial.print(AccY); Serial.print("\t");
-    Serial.print(AccZ); Serial.print("\t");
-
-    //  Serial.print(gyroX); Serial.print("\t\t");
-    //  Serial.print(gyroY); Serial.print("\t\t");
-    //  Serial.print(gyroZ); Serial.print("\t\t");
-
-    Serial.print("\t");
-    #endif
-    #if 0
-    Serial.print("i am here");
-    Serial.print(roll); Serial.print("\t");  Serial.print(pitch); Serial.print("\t");
-    Serial.print("\t");
-    Serial.print(gyroXangle); Serial.print("\t");  Serial.print(gyroYangle); Serial.print("\t");
-    Serial.print("\t");
-    Serial.print(kalAngleX); Serial.print("\t");Serial.print(kalAngleY); Serial.print("\t");
-    ALTIMUGyroX = gyroXangle;
-    Serial.print("\t");
-
-    //  Serial.print(compAngleX); Serial.print("\t");//  Serial.print(compAngleY); Serial.print("\t");
-  
-    #endif
-    #if 0 // Set to 1 to print the temperature
-    Serial.print("\t");
-
-    double temperature = (double)tempRaw / 340.0 + 36.53;
-    Serial.print(temperature); Serial.print("\t");
-    #endif
-
-    Serial.print("\r\n");
-    delay(20); //MAYBE NEED TO COMMENT OUT
-    }
-  
-}
+//void CalcKalman( void *pvParameters ){
+//    for(;;){
+//  //JQ Kalman processing code
+//     /* Update all the values */
+//    
+//    
+//    while (i2cRead(OUT_X_L | (1 << 7), i2cData, 14));
+//    compass.read();
+//  
+//    AccX = compass.a.x;
+//    AccY = compass.a.y;
+//    AccZ = compass.a.z;
+//    
+//    GyroX = (i2cData[1] << 8) | i2cData[0];
+//    GyroY = (i2cData[3] << 8) | i2cData[2];
+//    GyroZ = (i2cData[5] << 8) | i2cData[4];
+//    
+//    
+//
+//    double dt = (double)(micros() - timer) / 1000000; // Calculate delta time
+//    timer = micros();
+//
+//    // Source: http://www.freescale.com/files/sensors/doc/app_note/AN3461.pdf eq. 25 and eq. 26
+//    // atan2 outputs the value of -π to π (radians) - see         http://en.wikipedia.org/wiki/Atan2
+//    // It is then converted from radians to degrees
+//    #ifdef RESTRICT_PITCH // Eq. 25 and 26
+//    double roll  = atan2(AccY, AccZ) * RAD_TO_DEG;
+//    double pitch = atan(-AccX / sqrt(AccY * AccY + AccZ * AccZ)) * RAD_TO_DEG;
+//    #else // Eq. 28 and 29
+//    double roll  = atan(AccY / sqrt(AccX * AccX + AccZ * AccZ)) * RAD_TO_DEG;
+//    double pitch = atan2(-AccX, AccZ) * RAD_TO_DEG;
+//    #endif
+//
+//    double gyroXrate = GyroX / 131.0; // Convert to deg/s
+//    double gyroYrate = GyroY / 131.0; // Convert to deg/s
+//
+//    #ifdef RESTRICT_PITCH
+//    // This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees
+//    if ((roll < -90 && kalAngleX > 90) || (roll > 90 && kalAngleX < -90)) {
+//        kalmanX.setAngle(roll);
+//        compAngleX = roll;
+//        kalAngleX = roll;
+//        gyroXangle = roll;
+//    } else
+//        kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
+//
+//    if (abs(kalAngleX) > 90)
+//        gyroYrate = -gyroYrate; // Invert rate, so it fits the restriced accelerometer reading
+//    kalAngleY = kalmanY.getAngle(pitch, gyroYrate, dt);
+//        #else
+//    // This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees
+//    if ((pitch < -90 && kalAngleY > 90) || (pitch > 90 && kalAngleY < -90)) {
+//        kalmanY.setAngle(pitch);
+//        compAngleY = pitch;
+//        kalAngleY = pitch;
+//        gyroYangle = pitch;
+//    } else
+//        alAngleY = kalmanY.getAngle(pitch, gyroYrate, dt); // Calculate the angle using a Kalman filter
+//
+//    if (abs(kalAngleY) > 90)
+//        gyroXrate = -gyroXrate; // Invert rate, so it fits the restriced accelerometer reading
+//        kalAngleX = kalmanX.getAngle(roll, gyroXrate, dt); // Calculate the angle using a Kalman filter
+//    #endif
+//
+//    gyroXangle += gyroXrate * dt; // Calculate gyro angle without any filter
+//    gyroYangle += gyroYrate * dt;
+//    //gyroXangle += kalmanX.getRate() * dt; // Calculate gyro angle using the unbiased rate
+//    //gyroYangle += kalmanY.getRate() * dt;
+//
+//    compAngleX = 0.93 * (compAngleX + gyroXrate * dt) + 0.07 * roll; // Calculate the angle using a Complimentary filter
+//    compAngleY = 0.93 * (compAngleY + gyroYrate * dt) + 0.07 * pitch;
+//
+//  // Reset the gyro angle when it has drifted too much
+//    if (gyroXangle < -180 || gyroXangle > 180)
+//        gyroXangle = kalAngleX;
+//    if (gyroYangle < -180 || gyroYangle > 180)
+//        gyroYangle = kalAngleY;
+//
+//  /* Print Data */
+//    #if 0 // Set to 1 to activate
+//    Serial.print(AccX); Serial.print("\t");
+//    Serial.print(AccY); Serial.print("\t");
+//    Serial.print(AccZ); Serial.print("\t");
+//
+//    //  Serial.print(gyroX); Serial.print("\t\t");
+//    //  Serial.print(gyroY); Serial.print("\t\t");
+//    //  Serial.print(gyroZ); Serial.print("\t\t");
+//
+//    Serial.print("\t");
+//    #endif
+//    #if 0
+//    Serial.print("i am here");
+//    Serial.print(roll); Serial.print("\t");  Serial.print(pitch); Serial.print("\t");
+//    Serial.print("\t");
+//    Serial.print(gyroXangle); Serial.print("\t");  Serial.print(gyroYangle); Serial.print("\t");
+//    Serial.print("\t");
+//    Serial.print(kalAngleX); Serial.print("\t");Serial.print(kalAngleY); Serial.print("\t");
+//    ALTIMUGyroX = gyroXangle;
+//    Serial.print("\t");
+//
+//    //  Serial.print(compAngleX); Serial.print("\t");//  Serial.print(compAngleY); Serial.print("\t");
+//  
+//    #endif
+//    #if 0 // Set to 1 to print the temperature
+//    Serial.print("\t");
+//
+//    double temperature = (double)tempRaw / 340.0 + 36.53;
+//    Serial.print(temperature); Serial.print("\t");
+//    #endif
+//
+//    Serial.print("\r\n");
+//    delay(20); //MAYBE NEED TO COMMENT OUT
+//    }
+//  
+//}
 
 void GetCompass( void *pvParameters ){
   for(;;){
-    Serial.println("I GOT INNNNNNNNNNNNNNNNNNNNNNNNN");
+    //Serial.println("I GOT INNNNNNNNNNNNNNNNNNNNNNNNN");
     compass.read();
     heading = compass.heading();
-    Serial.println("I READ THE COMPASS");
+
+    //reseting
+    compassBuffer[pointerBuffer++] = heading;
+    compassCount=0;
+    for(int i =0; i< MAXCOMPASS-1; i++)
+    {
+      if(compassBuffer[i] == compassBuffer[i+1])
+        compassCount++;
+    }
+    if(pointerBuffer>=MAXCOMPASS)
+      pointerBuffer=0;
+    if(compassCount >= MAXCOMPASS-1)
+    {
+      Serial.println("compass reset");
+      compass.init();
+      heading = compassBuffer[pointerBuffer];
+    }
+    delay(20);
+    //Serial.println("I READ THE COMPASS");
   }
 }
 
