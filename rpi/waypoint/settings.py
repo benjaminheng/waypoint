@@ -6,8 +6,8 @@ FLOORPLAN_URL = 'http://showmyway.comp.nus.edu.sg/getMapInfo.php'
 
 # Map of building and levels to load
 BUILDINGS = {
-    'COM1': (1, 2),
-    'COM2': (2, 3),
+    '1': (1, 2),
+    '2': (2, 3),
 }
 
 STEP_LENGTH = 66

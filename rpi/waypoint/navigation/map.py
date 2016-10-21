@@ -68,13 +68,13 @@ class Node(object):
     @property
     def audio_components(self):
         building, level, node = self.components
-        try:
-            match = BUILDING_RE.match(building)
-            building_name = match.group('building')
-            building_id = match.group('building_id')
-            building = '{0}, {1}'.format(building_name, building_id)
-        except:
-            pass
+        # try:
+        #     match = BUILDING_RE.match(building)
+        #     building_name = match.group('building')
+        #     building_id = match.group('building_id')
+        #     building = '{0}, {1}'.format(building_name, building_id)
+        # except:
+        #     pass
         return building, level, node
 
     @classmethod

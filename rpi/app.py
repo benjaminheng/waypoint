@@ -178,7 +178,7 @@ if __name__ == '__main__':
 
     # TODO: Verify that nodes are different
     # start_node_id, end_node_id = prompt_for_path(nav_map)
-    start_node_id, end_node_id = 'COM1_2_10', 'COM1_2_14'
+    start_node_id, end_node_id = '1_2_10', '1_2_14'
     logger.info('Getting optimal path for: {0}, {1}'.format(
         start_node_id, end_node_id
     ))
