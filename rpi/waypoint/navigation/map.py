@@ -192,7 +192,7 @@ class Map(object):
                     'Building': building,
                     'Level': level,
                 }
-                if use_cache:
+                if not use_cache:
                     resp = requests.get(FLOORPLAN_URL, params=data)
                     if resp.status_code != 200:
                         return
@@ -202,6 +202,7 @@ class Map(object):
                     with open(path) as f:
                         data = f.read()
                         result = json.loads(data)
+                        logger.info('Loaded cache {0}'.format(path))
                 key = self._get_map_key(building, level)
                 self.north_map[key] = (
                     int(result.get('info', {}).get('northAt'))
