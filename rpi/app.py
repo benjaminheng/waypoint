@@ -106,6 +106,7 @@ def prompt_for_path(nav_map):
 
 def send_obstacle_speech(speech, text=None):
     global time_since_last_obstacle_speech
+    speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
     if time.time() - time_since_last_turn_speech > 2:
         logger.info('Obstacle detected')
         speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
@@ -273,6 +274,7 @@ if __name__ == '__main__':
     ))
     while True:
         step_counter = comms.get_packet(DeviceID.STEP_COUNT)
+        logger.info(speech.queue.queue)
         if step_counter and step_counter.data > last_steps:
             delta = step_counter.data - last_steps
             last_steps = step_counter.data
