@@ -8,8 +8,8 @@ Kalman kalmanY;
 
 #define RESTRICT_PITCH // Comment out to restrict roll to ±90deg instead - please read: http://www.freescale.com/files/sensors/doc/app_note/AN3461.pdf
 
-#define MOTOR_LEFT 26
-#define MOTOR_RIGHT 27
+#define MOTOR_LEFT 39
+#define MOTOR_RIGHT 33
 
 #define CHECKSUM_BYTES 1
 #define EOL_BYTES 2
@@ -149,6 +149,8 @@ void setup() {
   // initialize serial communication at 9600 bits per second:
   Serial.begin(115200);
   Serial1.begin(115200);
+  pinMode(MOTOR_RIGHT, OUTPUT);
+  pinMode(MOTOR_LEFT, OUTPUT);
   
   MIXLIB.initialise();
   
@@ -534,22 +536,31 @@ void CalcSteps( void *pvParameters ){
 void ReadUltrasonic1( void *pvParameters ){
     for(;;){
       UltrasonicArmLeft = MIXLIB.getSR04_ArmLeft_cm();
-      if(UltrasonicArmLeft > 30) {
-        digitalWrite(MOTOR_LEFT, HIGH);  
+      if(UltrasonicArmLeft < 40) {
+        digitalWrite(MOTOR_LEFT, HIGH);
+        delay(20);
+        digitalWrite(MOTOR_LEFT, LOW);
+        delay(UltrasonicArmLeft*15);
       } else {
         digitalWrite(MOTOR_LEFT, LOW);
       }
+      delay(20);
     }
 }
 
 void ReadUltrasonic2( void *pvParameters ){
     for(;;){
       UltrasonicArmRight = MIXLIB.getSR04_ArmRight_cm();
-      if(UltrasonicArmRight > 30) {
-        digitalWrite(MOTOR_RIGHT, HIGH);  
+      if(UltrasonicArmRight < 30) {
+        digitalWrite(MOTOR_RIGHT, HIGH);
+        Serial.println("HIGH");
+        delay(20);
+        digitalWrite(MOTOR_LEFT, LOW);
+        delay(UltrasonicArmLeft*15);
       } else {
         digitalWrite(MOTOR_RIGHT, LOW);
       }
+      delay(20);
     }
 }
 
