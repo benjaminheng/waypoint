@@ -137,7 +137,7 @@ class Map(object):
 
     def init(self, buildings=BUILDINGS, download=True, cache=False):
         if download:
-            self.download_floorplans(buildings, use_cache=True)
+            self.download_floorplans(buildings, use_cache=not download)
         else:
             try:
                 with open(CACHE_FILE, 'r') as f:
