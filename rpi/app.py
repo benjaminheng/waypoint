@@ -184,6 +184,7 @@ def obstacle_avoidance(speech, nav_map, comms, initial_values):
             speech.clear_with_content(front_text)
             speech.clear_with_content(left_text)
             speech.clear_with_content(right_text)
+            obstacle_speech.clear_queue()
             speech.put(audio_text.OBSTACLE_CLEARED, 5)
             return
         else:
@@ -392,7 +393,6 @@ if __name__ == '__main__':
             obstacle_avoidance(speech, nav_map, comms,
                                initial_values=initial_values)
             speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
-            obstacle_speech.clear_queue()
             # speech.clear_with_content_startswith('Obstacle')
 
             # TODO: reorient player?
