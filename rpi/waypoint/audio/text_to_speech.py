@@ -3,7 +3,7 @@ from threading import Thread
 from Queue import PriorityQueue
 
 TTS_COMMAND = 'flite -voice rms -t "{0}"'
-BEEP_COMMAND = 'play -n  synth 0.1 sin 347'
+BEEP_COMMAND = 'play -n  synth 0.1 sin 347 2> /dev/null'
 
 
 class TextToSpeech(Thread):
