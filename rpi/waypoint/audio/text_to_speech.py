@@ -1,6 +1,9 @@
 import os
 from threading import Thread
 from Queue import PriorityQueue
+from waypoint.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 TTS_COMMAND = 'flite -voice rms -t "{0}"'
 
@@ -55,6 +58,7 @@ class ObstacleSpeech(Thread):
     def run(self):
         while True:
             _, side = self.queue.get()
+            logger.info(side)
             if side == 'front':
                 os.system(BEEP_COMMAND)
             elif side == 'right':
