@@ -177,8 +177,8 @@ if __name__ == '__main__':
     nav_map = Map()
 
     # TODO: Verify that nodes are different
-    # start_node_id, end_node_id = prompt_for_path(nav_map)
-    start_node_id, end_node_id = '1_2_10', '1_2_14'
+    start_node_id, end_node_id = prompt_for_path(nav_map)
+    # start_node_id, end_node_id = '1_2_10', '1_2_14'
     logger.info('Getting optimal path for: {0}, {1}'.format(
         start_node_id, end_node_id
     ))
@@ -191,6 +191,7 @@ if __name__ == '__main__':
     start_node = nav_map.path.pop(0)
     nav_map.next_node = nav_map.path.pop(0)
     nav_map.player.set_position_to_node(start_node)
+    nav_map.set_steps_to_next_node()
     logger.info('Initialized player position to: {}, {}, {}, {}'.format(
         nav_map.player.x,
         nav_map.player.y,
@@ -234,7 +235,10 @@ if __name__ == '__main__':
             last_steps = step_counter.data
             break
 
-    speech.put(audio_text.PROCEED_FORWARD)
+    # speech.put(audio_text.PROCEED_FORWARD)
+    speech.put(audio_text.PROCEED_FORWARD_STEPS.format(
+        nav_map.steps_to_next_node
+    ))
     while True:
         step_counter = comms.get_packet(DeviceID.STEP_COUNT)
         if step_counter and step_counter.data > last_steps:
