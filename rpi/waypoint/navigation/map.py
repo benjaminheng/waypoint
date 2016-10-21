@@ -149,10 +149,10 @@ class Map(object):
                 logger.warning('Error loading cache. Downloading instead')
                 self.download_floorplans(buildings)
 
-        if cache:
-            with open(CACHE_FILE, 'w') as f:
-                logger.info('Writing to cache file')
-                f.write(json.dumps(self.nodes))
+        # if cache:
+        #     with open(CACHE_FILE, 'w') as f:
+        #         logger.info('Writing to cache file')
+        #         f.write(json.dumps(self.nodes))
         self.init_graph()
 
     def _has_more_levels(self, populated_levels, next_levels):
