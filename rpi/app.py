@@ -159,7 +159,6 @@ def obstacle_avoidance(speech, nav_map, comms):
 
 def reorient_player(speech, nav_map, comms):
     logger.info('Reorienting user')
-    speech_sent = False
     count = 0
     while True:
         compass = comms.get_packet(DeviceID.COMPASS)
@@ -172,8 +171,8 @@ def reorient_player(speech, nav_map, comms):
         else:
             count = 0
         direction, angle = nav_map.calculate_player_turn_direction()
-        speech_sent = send_turn_speech(speech, direction, angle)
-        if count >= 10:
+        send_turn_speech(speech, direction, angle)
+        if count >= 12:
             break
         time.sleep(0.2)
     logger.info('End reorienting user')
