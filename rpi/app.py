@@ -11,7 +11,7 @@ from waypoint.firmware.packet import DeviceID
 from waypoint.firmware.keypad import wait_for_confirmed_input
 from waypoint.audio import constants as audio_text
 from waypoint.settings import (
-    UF_FRONT_THRESHOLD, UF_LEFT_THRESHOLD, UF_RIGHT_THRESHOLD, CACHE_FILE,
+    UF_FRONT_THRESHOLD, UF_LEFT_THRESHOLD, UF_RIGHT_THRESHOLD,
     DOWNLOAD_MAP, CACHE_DOWNLOADED_MAP
 )
 
