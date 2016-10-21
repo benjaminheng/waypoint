@@ -159,8 +159,7 @@ def obstacle_avoidance(speech, nav_map, comms):
 
 def reorient_player(speech, nav_map, comms):
     logger.info('Reorienting user')
-    speech_sent = False
-    while not speech_sent or not nav_map.is_player_facing_next_node():
+    while not nav_map.is_player_facing_next_node():
         time.sleep(0.2)
         compass = comms.get_packet(DeviceID.COMPASS)
         if compass:
