@@ -40,33 +40,33 @@ is_stopped = False
 def get_uf_values():
     global uf_count
     global uf_history
-    try:
-        return (
-            uf_history.get(DeviceID.ULTRASOUND_FRONT)[-1],
-            uf_history.get(DeviceID.ULTRASOUND_LEFT)[-1],
-            uf_history.get(DeviceID.ULTRASOUND_RIGHT)[-1],
-        )
-    except:
-        return None, None, None
-    # if all(uf_count[i] >= 5 for i in uf_count):
-    #     for key in uf_count:
-    #         uf_count[key] = 0
-    #     middle = UF_HISTORY_LEN/2
-    #     # Returns the "median" (does not account for even numbers)
+    # try:
     #     return (
-    #         sorted(uf_history.get(DeviceID.ULTRASOUND_FRONT))[middle],
-    #         sorted(uf_history.get(DeviceID.ULTRASOUND_LEFT))[middle],
-    #         sorted(uf_history.get(DeviceID.ULTRASOUND_RIGHT))[middle],
+    #         uf_history.get(DeviceID.ULTRASOUND_FRONT)[-1],
+    #         uf_history.get(DeviceID.ULTRASOUND_LEFT)[-1],
+    #         uf_history.get(DeviceID.ULTRASOUND_RIGHT)[-1],
     #     )
-    # else:
+    # except:
     #     return None, None, None
+    if all(uf_count[i] >= 5 for i in uf_count):
+        for key in uf_count:
+            uf_count[key] = 0
+        middle = UF_HISTORY_LEN/2
+        # Returns the "median" (does not account for even numbers)
+        return (
+            sorted(uf_history.get(DeviceID.ULTRASOUND_FRONT))[middle],
+            sorted(uf_history.get(DeviceID.ULTRASOUND_LEFT))[middle],
+            sorted(uf_history.get(DeviceID.ULTRASOUND_RIGHT))[middle],
+        )
+    else:
+        return None, None, None
 
 
 def put_uf_value(device_id, value):
     global uf_count
     global uf_history
     uf_history.get(device_id).append(value)
-    # uf_count[device_id] = uf_count.get(device_id) + 1
+    uf_count[device_id] = uf_count.get(device_id) + 1
 
 
 def prompt_for_path(nav_map):
