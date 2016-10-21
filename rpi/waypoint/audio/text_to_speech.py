@@ -10,6 +10,12 @@ class TextToSpeech(Thread):
         super(TextToSpeech, self).__init__()
         self.queue = PriorityQueue()
 
+    def clear_with_content_startswith(self, content):
+        with self.queue.mutex:
+            self.queue.queue = [
+                i for i in self.queue.queue if not i[1].startswith(content)
+            ]
+
     def clear_with_content(self, content):
         with self.queue.mutex:
             self.queue.queue = [i for i in self.queue.queue if i[1] != content]
