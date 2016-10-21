@@ -369,8 +369,8 @@ if __name__ == '__main__':
             )
             obstacle_avoidance(speech, nav_map, comms,
                                initial_values=initial_values)
-            # speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
-            speech.clear_with_content_startswith('Obstacle')
+            speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
+            # speech.clear_with_content_startswith('Obstacle')
 
             # TODO: reorient player?
 

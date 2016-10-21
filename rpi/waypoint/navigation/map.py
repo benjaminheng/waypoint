@@ -135,7 +135,7 @@ class Map(object):
         self.next_node = None   # Next node to hit
         self.steps_to_next_node = 0
 
-    def init(self, buildings=BUILDINGS, download=True, cache=True):
+    def init(self, buildings=BUILDINGS, download=True, cache=False):
         if download:
             self.download_floorplans(buildings)
         else:
@@ -185,7 +185,7 @@ class Map(object):
     def is_valid_node(self, node_id):
         return node_id in self.nodes
 
-    def download_floorplans(self, buildings):
+    def download_floorplans(self, buildings, cache=False):
         for building, levels in buildings.items():
             for level in levels:
                 data = {
