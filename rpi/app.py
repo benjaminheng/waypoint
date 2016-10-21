@@ -156,13 +156,16 @@ def obstacle_avoidance(speech, nav_map, comms):
 
 
 def reorient_player(speech, nav_map, comms):
+    logger.info('Reorienting user')
     while not nav_map.is_player_facing_next_node():
+        logger.info(nav_map.player.heading)
         compass = comms.get_packet(DeviceID.COMPASS)
         if compass:
             nav_map.player.set_heading(compass.data)
 
         direction, angle = nav_map.calculate_player_turn_direction()
         send_turn_speech(speech, direction, angle)
+    logger.info('End reorienting user')
     speech.put(audio_text.PROCEED_FORWARD)
 
 
@@ -265,7 +268,7 @@ if __name__ == '__main__':
                 logger.info('----------------------------------------')
                 logger.info((building, level, node))
                 logger.info('Player is near next node.')
-                speech.put(audio_text.STOP, 1)
+                speech.put(audio_text.STOP, 2)
                 is_stopped = True
                 speech.put(audio_text.CURRENT_POSITION.format(
                     building, level, node

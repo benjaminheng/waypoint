@@ -1,6 +1,6 @@
 import logging
 
-LOG_LEVEL = logging.INFO
+LOG_LEVEL = logging.DEBUG
 
 FLOORPLAN_URL = 'http://showmyway.comp.nus.edu.sg/getMapInfo.php'
 
