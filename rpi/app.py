@@ -153,7 +153,7 @@ def read_uf_sensors(comms):
 
 def obstacle_avoidance(speech, nav_map, comms, initial_values):
     initial_uf_front_value, initial_uf_left_value, initial_uf_right_value = (
-        get_uf_values()
+        initial_values
     )
     while True:
         read_uf_sensors(comms)
@@ -361,11 +361,12 @@ if __name__ == '__main__':
             # Obstacle avoidance routine. This will unblock when cleared
             logger.info('Obstacle detected. Entering obstacle avoidance.')
             initial_values = (
-                uf_front_value, uf_left_value, uf_right_right,
+                uf_front_value, uf_left_value, uf_right_value,
             )
             obstacle_avoidance(speech, nav_map, comms,
                                initial_values=initial_values)
-            speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
+            # speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
+            speech.clear_with_content_startswith('Obstacle')
 
             # TODO: reorient player?
 
