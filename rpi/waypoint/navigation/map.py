@@ -121,6 +121,7 @@ class PlayerNode(Node):
         )
 
     def set_heading(self, heading):
+        heading = heading % 360
         self.heading = heading
 
 
