@@ -141,6 +141,7 @@ class Map(object):
         else:
             try:
                 with open(CACHE_FILE, 'r') as f:
+                    logger.info('Reading from cache file')
                     data = f.read()
                     self.nodes = json.loads(data)
             except Exception as e:
@@ -150,6 +151,7 @@ class Map(object):
 
         if cache:
             with open(CACHE_FILE, 'w') as f:
+                logger.info('Writing to cache file')
                 f.write(json.dumps(self.nodes))
         self.init_graph()
 
