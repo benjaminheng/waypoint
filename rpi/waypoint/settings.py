@@ -10,10 +10,14 @@ BUILDINGS = {
     'COM2': (2, 3),
 }
 
-STEP_LENGTH = 40
+STEP_LENGTH = 66
 
 # How close to the node before we consider ourselves to be at the node
-NODE_PROXIMITY_THRESHOLD = 100
+NODE_PROXIMITY_THRESHOLD = 50
+
+UF_FRONT_THRESHOLD = 100
+UF_LEFT_THRESHOLD = 70
+UF_RIGHT_THRESHOLD = 70
 
 
 try:

@@ -66,11 +66,11 @@ class Comms(Thread):
                         packets = Packet.deserialize(data)
                         for packet in packets:
                             self.device_queue[packet.device_id].append(packet)
-                        # logger.debug(
-                        #     '\t'.join(
-                        #         '{0}, {1}'.format(p.device_id, p.data)
-                        #         for p in packets
-                        #     )
-                        # )
+                        logger.debug(
+                            '\t'.join(
+                                '{0}, {1}'.format(p.device_id, p.data)
+                                for p in packets
+                            )
+                        )
             except Exception as e:
                 logger.warning('{0}: {1}'.format(type(e).__name__, e))
