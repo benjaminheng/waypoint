@@ -104,17 +104,17 @@ def prompt_for_path(nav_map):
     return node_id1, node_id2
 
 
-def send_obstacle_speech(speech, text=None):
+def send_obstacle_speech(speech, text=None, immediate=False, priority=10):
     global time_since_last_obstacle_speech
     speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
-    if time.time() - time_since_last_turn_speech > 2:
+    if time.time() - time_since_last_turn_speech > 2 or immediate:
         logger.info('Obstacle detected')
         speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
         # speech.clear_queue()
         if text is None:
-            speech.put(audio_text.OBSTACLE_DETECTED)
+            speech.put(audio_text.OBSTACLE_DETECTED, priority=priority)
         else:
-            speech.put(text)
+            speech.put(text, priority=priority)
         time_since_last_obstacle_speech = time.time()
 
 
@@ -148,13 +148,21 @@ def obstacle_avoidance(speech, nav_map, comms):
         read_uf_sensors(comms)
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
         text = None
-        if uf_front_value is not None and uf_front_value > 20 and uf_front_value < UF_FRONT_THRESHOLD:
+        if uf_front_value is not None and \
+                uf_front_value > 20 and \
+                uf_front_value < UF_FRONT_THRESHOLD:
             text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('front')
-        elif uf_left_value is not None and uf_left_value > 20 and uf_left_value < UF_LEFT_THRESHOLD:
+        elif uf_left_value is not None and \
+                uf_left_value > 20 and \
+                uf_left_value < UF_LEFT_THRESHOLD:
             text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('left')
-        elif uf_right_value is not None and uf_right_value > 20 and uf_right_value < UF_RIGHT_THRESHOLD:
+        elif uf_right_value is not None and \
+                uf_right_value > 20 and \
+                uf_right_value < UF_RIGHT_THRESHOLD:
             text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('right')
-        elif uf_front_value is not None and uf_left_value is not None and uf_right_value is not None:
+        elif uf_front_value is not None and \
+                uf_left_value is not None and \
+                uf_right_value is not None:
             logger.info('Obstacle cleared.')
             speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
             speech.put(audio_text.OBSTACLE_CLEARED, 5)
@@ -338,7 +346,7 @@ if __name__ == '__main__':
             (uf_left_value is not None and uf_left_value > 20 and uf_left_value < UF_LEFT_THRESHOLD) or
             (uf_right_value is not None and uf_right_value > 20 and uf_right_value < UF_RIGHT_THRESHOLD)
         ):
-            send_obstacle_speech(speech)
+            send_obstacle_speech(speech, immediate=True)
             # Obstacle avoidance routine. This will unblock when cleared
             logger.info('Obstacle detected. Entering obstacle avoidance.')
             obstacle_avoidance(speech, nav_map, comms)
