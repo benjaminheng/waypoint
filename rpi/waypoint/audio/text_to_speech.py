@@ -13,7 +13,8 @@ class TextToSpeech(Thread):
     def clear_with_content_startswith(self, content):
         with self.queue.mutex:
             self.queue.queue = [
-                i for i in self.queue.queue if not i[1].startswith(content)
+                i for i in self.queue.queue
+                if not i[1].lower().startswith(content.lower())
             ]
 
     def clear_with_content(self, content):

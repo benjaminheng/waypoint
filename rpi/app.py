@@ -215,6 +215,9 @@ def reorient_player(speech, nav_map, comms):
             break
         time.sleep(0.2)
     logger.info('End reorienting user')
+    speech.clear_with_content_startswith('left')
+    speech.clear_with_content_startswith('right')
+    speech.clear_with_content_startswith('Slightly')
     speech.put(audio_text.PROCEED_FORWARD)
 
 
