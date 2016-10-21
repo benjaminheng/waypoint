@@ -12,7 +12,7 @@ from waypoint.firmware.keypad import wait_for_confirmed_input
 from waypoint.audio import constants as audio_text
 from waypoint.settings import (
     UF_FRONT_THRESHOLD, UF_LEFT_THRESHOLD, UF_RIGHT_THRESHOLD,
-    DOWNLOAD_MAP, CACHE_DOWNLOADED_MAP
+    DOWNLOAD_MAP, CACHE_DOWNLOADED_MAP, COMPASS_OFFSET
 )
 
 logger = get_logger(__name__)
@@ -216,7 +216,7 @@ def reorient_player(speech, nav_map, comms):
     while True:
         compass = comms.get_packet(DeviceID.COMPASS)
         if compass:
-            nav_map.player.set_heading(compass.data)
+            nav_map.player.set_heading(compass.data + COMPASS_OFFSET)
 
         is_facing = nav_map.is_player_facing_next_node()
         if is_facing:
@@ -278,7 +278,7 @@ if __name__ == '__main__':
         logger.info('Initializing player heading')
         compass = comms.get_packet(DeviceID.COMPASS)
         if compass:
-            nav_map.player.set_heading(compass.data)
+            nav_map.player.set_heading(compass.data + COMPASS_OFFSET)
             break
 
     # Orient user towards next node first
@@ -289,7 +289,7 @@ if __name__ == '__main__':
         compass = comms.get_packet(DeviceID.COMPASS)
         if compass:
             # Update player heading
-            nav_map.player.set_heading(compass.data)
+            nav_map.player.set_heading(compass.data + COMPASS_OFFSET)
         direction, angle = nav_map.calculate_player_turn_direction()
         send_turn_speech(speech, direction, angle)
     speech.clear_queue()
@@ -362,7 +362,7 @@ if __name__ == '__main__':
 
         compass = comms.get_packet(DeviceID.COMPASS)
         if compass:
-            nav_map.player.set_heading(compass.data)
+            nav_map.player.set_heading(compass.data + COMPASS_OFFSET)
             if not is_stopped and not nav_map.is_player_facing_next_node():
                 speech.put(audio_text.STOP, 1)
                 is_stopped = True
