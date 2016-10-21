@@ -69,6 +69,15 @@ def put_uf_value(device_id, value):
     uf_count[device_id] = uf_count.get(device_id) + 1
 
 
+def prompt_for_navigation_start():
+    speech.put(audio_text.PROMPT_TO_START_NAVIGATION)
+    while True:
+        key = wait_for_confirmed_input()
+        if key == '*':
+            break
+        speech.put(audio_text.PROMPT_TO_START_NAVIGATION)
+
+
 def prompt_for_path(nav_map):
     while True:
         speech.put(audio_text.SELECT_START_NODE)
@@ -260,6 +269,9 @@ if __name__ == '__main__':
     logger.info(nav_map.path)
 
     # TODO: validate path exists
+
+    # Prompt to start navigation
+    prompt_for_navigation_start()
 
     # Set player position
     start_node = nav_map.path.pop(0)

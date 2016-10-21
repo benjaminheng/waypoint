@@ -3,6 +3,7 @@ SELECT_END_NODE = 'Select your destination'
 SELECT_CONFIRMATION = 'You have selected {0}, {1}, {2}, and {3}, {4}, {5}'
 INVALID_NODE = 'Invalid selection: {0}, {1}, {2}'
 INITIAL_ORIENTATION = 'Please turn to face the next location'
+PROMPT_TO_START_NAVIGATION = 'Press the star key to start'
 
 # 90 degree turns
 TURN = '{0}'
