@@ -166,7 +166,7 @@ def reorient_player(speech, nav_map, comms):
             nav_map.player.set_heading(compass.data)
 
         direction, angle = nav_map.calculate_player_turn_direction()
-        speech_sent = send_turn_speech(speech, direction, angle)
+        send_turn_speech(speech, direction, angle)
     logger.info('End reorienting user')
     speech.put(audio_text.PROCEED_FORWARD)
 
@@ -182,8 +182,8 @@ if __name__ == '__main__':
     nav_map = Map()
 
     # TODO: Verify that nodes are different
-    start_node_id, end_node_id = prompt_for_path(nav_map)
-    # start_node_id, end_node_id = '1_2_10', '1_2_14'
+    # start_node_id, end_node_id = prompt_for_path(nav_map)
+    start_node_id, end_node_id = '1_2_21', '1_2_28'
     logger.info('Getting optimal path for: {0}, {1}'.format(
         start_node_id, end_node_id
     ))
