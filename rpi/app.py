@@ -155,6 +155,7 @@ def obstacle_avoidance(speech, nav_map, comms):
             text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('right')
         elif uf_front_value and uf_left_value and uf_right_value:
             logger.info('Obstacle cleared.')
+            speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
             speech.put(audio_text.OBSTACLE_CLEARED, 5)
             return
         else:
