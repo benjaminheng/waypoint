@@ -11,6 +11,7 @@ TURN_BY_DEGREES = 'Turn {0} {1} degrees'
 
 STOP = 'Stop!'
 OBSTACLE_DETECTED = 'Obstacle'
+OBSTACLE_DETECTED_DIRECTION = 'Obstacle {0}'
 OBSTACLE_CLEARED = 'Obstacle cleared. Proceed forward.'
 PROCEED_FORWARD = 'Proceed forward.'
 PROCEED_FORWARD_STEPS = 'Proceed forward {0} steps.'

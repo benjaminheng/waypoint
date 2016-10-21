@@ -104,13 +104,16 @@ def prompt_for_path(nav_map):
     return node_id1, node_id2
 
 
-def send_obstacle_speech(speech):
+def send_obstacle_speech(speech, text=None):
     global time_since_last_obstacle_speech
     if time.time() - time_since_last_turn_speech > 2:
         logger.info('Obstacle detected')
         speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
         # speech.clear_queue()
-        speech.put(audio_text.OBSTACLE_DETECTED)
+        if text is None:
+            speech.put(audio_text.OBSTACLE_DETECTED)
+        else:
+            speech.put(text)
         time_since_last_obstacle_speech = time.time()
 
 
@@ -143,18 +146,33 @@ def obstacle_avoidance(speech, nav_map, comms):
     while True:
         read_uf_sensors(comms)
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
-        if (
-            (uf_front_value and uf_front_value < UF_FRONT_THRESHOLD) or
-            (uf_left_value and uf_left_value < UF_LEFT_THRESHOLD) or
-            (uf_right_value and uf_right_value < UF_RIGHT_THRESHOLD)
-        ):
-            send_obstacle_speech(speech)
+        text = None
+        if uf_front_value and uf_front_value < UF_FRONT_THRESHOLD:
+            text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('front')
+        elif uf_left_value and uf_left_value < UF_LEFT_THRESHOLD:
+            text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('left')
+        elif uf_right_value and uf_right_value < UF_RIGHT_THRESHOLD:
+            text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('right')
         elif uf_front_value and uf_left_value and uf_right_value:
             logger.info('Obstacle cleared.')
             speech.put(audio_text.OBSTACLE_CLEARED, 5)
             return
         else:
+            send_obstacle_speech(speech, text=text)
             continue
+
+        # if (
+        #     (uf_front_value and uf_front_value < UF_FRONT_THRESHOLD) or
+        #     (uf_left_value and uf_left_value < UF_LEFT_THRESHOLD) or
+        #     (uf_right_value and uf_right_value < UF_RIGHT_THRESHOLD)
+        # ):
+            # send_obstacle_speech(speech)
+        # elif uf_front_value and uf_left_value and uf_right_value:
+            # logger.info('Obstacle cleared.')
+            # speech.put(audio_text.OBSTACLE_CLEARED, 5)
+            # return
+        # else:
+            # continue
 
 
 def reorient_player(speech, nav_map, comms):
