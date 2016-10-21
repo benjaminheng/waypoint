@@ -175,6 +175,7 @@ if __name__ == '__main__':
     speech.start()
     # TODO: get from cache if map fails to download
     nav_map = Map()
+    logger.info(nav_map.nodes)
 
     # TODO: Verify that nodes are different
     start_node_id, end_node_id = prompt_for_path(nav_map)
