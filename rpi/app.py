@@ -160,23 +160,30 @@ def obstacle_avoidance(speech, nav_map, comms, initial_values):
         read_uf_sensors(comms)
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
         text = None
+        front_text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('front')
+        left_text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('left')
+        right_text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('right')
         if uf_front_value is not None and \
                 uf_front_value > 10 and \
                 uf_front_value < UF_FRONT_THRESHOLD:
-            text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('front')
+            text = front_text
         elif uf_left_value is not None and \
                 uf_left_value > 10 and \
                 uf_left_value < UF_LEFT_THRESHOLD:
-            text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('left')
+            text = left_text
         elif uf_right_value is not None and \
                 uf_right_value > 10 and \
                 uf_right_value < UF_RIGHT_THRESHOLD:
-            text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('right')
+            text = right_text
         elif uf_front_value is not None and \
                 uf_left_value is not None and \
                 uf_right_value is not None:
             logger.info('Obstacle cleared.')
-            speech.clear_with_content_startswith('Obstacle')
+            # speech.clear_with_content_startswith('Obstacle')
+            speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
+            speech.clear_with_content(front_text)
+            speech.clear_with_content(left_text)
+            speech.clear_with_content(right_text)
             speech.put(audio_text.OBSTACLE_CLEARED, 5)
             return
         else:
