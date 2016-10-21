@@ -44,6 +44,7 @@ def get_new_coordinates(from_x, from_y, to_x, to_y, distance):
         rad = math.radians(90 - (abs(degrees) - 90))
         dx = -(distance * math.cos(rad))
         dy = -(distance * math.sin(rad))
+    logger.info(degrees)
     logger.info(from_x)
     logger.info(from_y)
     logger.info(dx)
