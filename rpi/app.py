@@ -162,7 +162,6 @@ def reorient_player(speech, nav_map, comms):
     speech_sent = False
     while not speech_sent or not nav_map.is_player_facing_next_node():
         time.sleep(0.2)
-        logger.info(nav_map.player.heading)
         compass = comms.get_packet(DeviceID.COMPASS)
         if compass:
             nav_map.player.set_heading(compass.data)
