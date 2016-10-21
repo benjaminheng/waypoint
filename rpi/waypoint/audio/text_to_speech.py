@@ -12,7 +12,7 @@ class TextToSpeech(Thread):
 
     def clear_with_content(self, content):
         with self.queue.mutex:
-            self.queue.queue = [i for i in self.queue.queue if i != content]
+            self.queue.queue = [i for i in self.queue.queue if i[1] != content]
 
     def clear_queue(self):
         with self.queue.mutex:
