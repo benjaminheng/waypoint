@@ -7,7 +7,7 @@ FLOORPLAN_URL = 'http://showmyway.comp.nus.edu.sg/getMapInfo.php'
 # Cache file
 DOWNLOAD_MAP = True  # If false, use cache
 CACHE_DOWNLOADED_MAP = True
-CACHE_FILE = '/home/pi/waypoint/{0}_{1}.json'
+CACHE_FILE = '/home/pi/waypoint/rpi/{0}_{1}.json'
 CACHE_FILES = [
     '/home/pi/waypoint/1_1.json',
     '/home/pi/waypoint/1_2.json',

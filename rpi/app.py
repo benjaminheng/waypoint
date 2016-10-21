@@ -40,26 +40,26 @@ is_stopped = False
 def get_uf_values():
     global uf_count
     global uf_history
-    # try:
-    #     return (
-    #         uf_history.get(DeviceID.ULTRASOUND_FRONT)[-1],
-    #         uf_history.get(DeviceID.ULTRASOUND_LEFT)[-1],
-    #         uf_history.get(DeviceID.ULTRASOUND_RIGHT)[-1],
-    #     )
-    # except:
-    #     return None, None, None
-    if all(uf_count[i] >= 5 for i in uf_count):
-        for key in uf_count:
-            uf_count[key] = 0
-        middle = UF_HISTORY_LEN/2
-        # Returns the "median" (does not account for even numbers)
+    try:
         return (
-            sorted(uf_history.get(DeviceID.ULTRASOUND_FRONT))[middle],
-            sorted(uf_history.get(DeviceID.ULTRASOUND_LEFT))[middle],
-            sorted(uf_history.get(DeviceID.ULTRASOUND_RIGHT))[middle],
+            uf_history.get(DeviceID.ULTRASOUND_FRONT)[-1],
+            uf_history.get(DeviceID.ULTRASOUND_LEFT)[-1],
+            uf_history.get(DeviceID.ULTRASOUND_RIGHT)[-1],
         )
-    else:
+    except:
         return None, None, None
+    # if all(uf_count[i] >= 5 for i in uf_count):
+    #     for key in uf_count:
+    #         uf_count[key] = 0
+    #     middle = UF_HISTORY_LEN/2
+    #     # Returns the "median" (does not account for even numbers)
+    #     return (
+    #         sorted(uf_history.get(DeviceID.ULTRASOUND_FRONT))[middle],
+    #         sorted(uf_history.get(DeviceID.ULTRASOUND_LEFT))[middle],
+    #         sorted(uf_history.get(DeviceID.ULTRASOUND_RIGHT))[middle],
+    #     )
+    # else:
+    #     return None, None, None
 
 
 def put_uf_value(device_id, value):
@@ -189,12 +189,12 @@ def obstacle_avoidance(speech, nav_map, comms, initial_values):
             speech.clear_with_content(left_text)
             speech.clear_with_content(right_text)
             obstacle_speech.clear_queue()
-            speech.put(audio_text.OBSTACLE_CLEARED, 5)
+            # speech.put(audio_text.OBSTACLE_CLEARED, 5)
             return
-        else:
+        if side:
             obstacle_speech.put(side)
-            send_obstacle_speech(speech, text=text)
-            continue
+        # if text:
+        #     send_obstacle_speech(speech, text=text)
 
         # if (
         #     (uf_front_value and uf_front_value < UF_FRONT_THRESHOLD) or
@@ -388,7 +388,7 @@ if __name__ == '__main__':
             (uf_left_value is not None and uf_left_value > 10 and uf_left_value < UF_LEFT_THRESHOLD) or
             (uf_right_value is not None and uf_right_value > 10 and uf_right_value < UF_RIGHT_THRESHOLD)
         ):
-            send_obstacle_speech(speech, immediate=True)
+            # send_obstacle_speech(speech, immediate=True)
             # Obstacle avoidance routine. This will unblock when cleared
             logger.info('Obstacle detected. Entering obstacle avoidance.')
             initial_values = (
@@ -396,7 +396,7 @@ if __name__ == '__main__':
             )
             obstacle_avoidance(speech, nav_map, comms,
                                initial_values=initial_values)
-            speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
+            # speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
             # speech.clear_with_content_startswith('Obstacle')
 
             # TODO: reorient player?
