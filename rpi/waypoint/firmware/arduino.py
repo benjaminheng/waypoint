@@ -12,5 +12,5 @@ GPIO.output(RESET_GPIO_PIN, GPIO.LOW)
 
 def reset_arduino():
     GPIO.output(RESET_GPIO_PIN, GPIO.HIGH)
-    time.sleep(0.5)
+    time.sleep(2)
     GPIO.output(RESET_GPIO_PIN, GPIO.LOW)
