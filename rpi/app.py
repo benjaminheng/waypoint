@@ -237,6 +237,29 @@ def reorient_player(speech, nav_map, comms):
         if count >= 12:
             break
         time.sleep(0.2)
+
+        # Also check UF sensors
+        read_uf_sensors(comms)
+        uf_front_value, uf_left_value, uf_right_value = get_uf_values()
+        side = None
+        if uf_front_value is not None and \
+                uf_front_value > 10 and \
+                uf_front_value < UF_FRONT_THRESHOLD:
+            side = 'front'
+        elif uf_left_value is not None and \
+                uf_left_value > 10 and \
+                uf_left_value < UF_LEFT_THRESHOLD:
+            side = 'left'
+        elif uf_right_value is not None and \
+                uf_right_value > 10 and \
+                uf_right_value < UF_RIGHT_THRESHOLD:
+            side = 'right'
+        elif uf_front_value is not None and \
+                uf_left_value is not None and \
+                uf_right_value is not None:
+            obstacle_speech.clear_queue()
+        if side:
+            obstacle_speech.put(side)
     logger.info('End reorienting user')
     speech.clear_with_content_startswith('left')
     speech.clear_with_content_startswith('right')
@@ -368,6 +391,7 @@ if __name__ == '__main__':
 
                 # Check if player needs to be reoriented after reaching node
                 reorient_player(speech, nav_map, comms)
+                speech.put(audio_text.PROCEED_FORWARD)
                 # Reset step count between nodes
                 steps_since_last_node = 0
                 is_stopped = False
