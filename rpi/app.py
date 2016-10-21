@@ -222,6 +222,7 @@ if __name__ == '__main__':
 
     step_count = 0
     last_steps = 0
+    steps_since_last_node = 0
     time_since_last_speech = 0
 
     # initialize step counter
@@ -240,7 +241,9 @@ if __name__ == '__main__':
             delta = step_counter.data - last_steps
             last_steps = step_counter.data
             step_count += delta
-            logger.debug('step_count = {0}'.format(step_count))
+            steps_since_last_node += delta
+            logger.debug('step_count = {0}; steps_since_last_node = {1}'
+                         .format(step_count, steps_since_last_node))
 
             # Set new player x,y coordinates
             if delta > 0:
@@ -275,6 +278,8 @@ if __name__ == '__main__':
 
                 # Check if player needs to be reoriented after reaching node
                 reorient_player(speech, nav_map, comms)
+                # Reset step count between nodes
+                steps_since_last_node = 0
                 is_stopped = False
 
         compass = comms.get_packet(DeviceID.COMPASS)

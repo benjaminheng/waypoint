@@ -3,7 +3,7 @@ import requests
 import heapq
 import re
 from waypoint.settings import (
-    FLOORPLAN_URL, BUILDINGS, NODE_PROXIMITY_THRESHOLD
+    FLOORPLAN_URL, BUILDINGS, NODE_PROXIMITY_THRESHOLD, STEP_LENGTH
 )
 from waypoint.navigation.heading import (
     calculate_turn_direction, is_pointing_to_node
@@ -131,6 +131,7 @@ class Map(object):
 
         self.path = []          # Path to take to get to destination
         self.next_node = None   # Next node to hit
+        self.steps_to_next_node = 0
 
         self.download_floorplans(buildings)
         self.init_graph()
@@ -154,6 +155,13 @@ class Map(object):
 
     def _get_map_key(self, building, level):
         return '{0}_{1}'.format(building, level)
+
+    def set_steps_to_next_node(self):
+        distance = math.hypot(
+            abs(self.next_node.x - self.player.x),
+            abs(self.next_node.y - self.player.y),
+        )
+        self.steps_to_next_node = math.ceil(float(distance) / STEP_LENGTH)
 
     def is_valid_node(self, node_id):
         return node_id in self.nodes
