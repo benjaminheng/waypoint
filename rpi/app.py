@@ -274,7 +274,6 @@ if __name__ == '__main__':
     ))
     while True:
         step_counter = comms.get_packet(DeviceID.STEP_COUNT)
-        logger.info(speech.queue.queue)
         if step_counter and step_counter.data > last_steps:
             delta = step_counter.data - last_steps
             last_steps = step_counter.data
