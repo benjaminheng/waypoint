@@ -5,7 +5,7 @@ from waypoint.navigation.map import Map, Node
 from waypoint.navigation.heading import (
     get_new_player_coordinates, get_turn_audio_text
 )
-from waypoint.audio.text_to_speech import TextToSpeech
+from waypoint.audio.text_to_speech import TextToSpeech, ObstacleSpeech
 from waypoint.firmware.comms import Comms
 from waypoint.firmware.packet import DeviceID
 from waypoint.firmware.keypad import wait_for_confirmed_input
@@ -187,6 +187,7 @@ def obstacle_avoidance(speech, nav_map, comms, initial_values):
             speech.put(audio_text.OBSTACLE_CLEARED, 5)
             return
         else:
+            obstacle_speech.put()
             send_obstacle_speech(speech, text=text)
             continue
 
@@ -232,9 +233,15 @@ if __name__ == '__main__':
     logger.info('Starting Waypoint')
     comms = Comms('/dev/ttyAMA0')
     comms.start()
+
     speech = TextToSpeech()
     speech.daemon = True
     speech.start()
+
+    obstacle_speech = ObstacleSpeech()
+    obstacle_speech.daemon = True
+    obstacle_speech.start()
+
     nav_map = Map()
     nav_map.init(download=DOWNLOAD_MAP, cache=CACHE_DOWNLOADED_MAP)
 
@@ -385,6 +392,7 @@ if __name__ == '__main__':
             obstacle_avoidance(speech, nav_map, comms,
                                initial_values=initial_values)
             speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
+            obstacle_speech.put()
             # speech.clear_with_content_startswith('Obstacle')
 
             # TODO: reorient player?

@@ -2,7 +2,8 @@ import os
 from threading import Thread
 from Queue import PriorityQueue
 
-COMMAND = 'flite -voice rms -t "{0}"'
+TTS_COMMAND = 'flite -voice rms -t "{0}"'
+BEEP_COMMAND = 'play -n  synth 0.1 sin 347'
 
 
 class TextToSpeech(Thread):
@@ -32,4 +33,18 @@ class TextToSpeech(Thread):
     def run(self):
         while True:
             _, text = self.queue.get()
-            os.system(COMMAND.format(text))
+            os.system(TTS_COMMAND.format(text))
+
+
+class ObstacleSpeech(Thread):
+    def __init__(self):
+        super(TextToSpeech, self).__init__()
+        self.queue = PriorityQueue()
+
+    def put(self, priority=10):
+        self.queue.put((priority, 0.1))
+
+    def run(self):
+        while True:
+            _, text = self.queue.get()
+            os.system(BEEP_COMMAND)
