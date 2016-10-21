@@ -1,7 +1,9 @@
 import math
 from waypoint.settings import STEP_LENGTH
+from waypoint.utils.logger import get_logger
 from waypoint.audio import constants as audio_text
 
+logger = get_logger(__name__)
 
 CONE_THRESHOLD = 20
 
@@ -42,6 +44,10 @@ def get_new_coordinates(from_x, from_y, to_x, to_y, distance):
         rad = math.radians(90 - (abs(degrees) - 90))
         dx = -(distance * math.cos(rad))
         dy = -(distance * math.sin(rad))
+    logger.info(from_x)
+    logger.info(from_y)
+    logger.info(dx)
+    logger.info(dy)
     return from_x + dx, from_y + dy
 
 
