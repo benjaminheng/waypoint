@@ -11,7 +11,8 @@ from waypoint.firmware.packet import DeviceID
 from waypoint.firmware.keypad import wait_for_confirmed_input
 from waypoint.audio import constants as audio_text
 from waypoint.settings import (
-    UF_FRONT_THRESHOLD, UF_LEFT_THRESHOLD, UF_RIGHT_THRESHOLD
+    UF_FRONT_THRESHOLD, UF_LEFT_THRESHOLD, UF_RIGHT_THRESHOLD, CACHE_FILE,
+    DOWNLOAD_MAP, CACHE_DOWNLOADED_MAP
 )
 
 logger = get_logger(__name__)
@@ -228,8 +229,8 @@ if __name__ == '__main__':
     speech = TextToSpeech()
     speech.daemon = True
     speech.start()
-    # TODO: get from cache if map fails to download
     nav_map = Map()
+    nav_map.init(download=DOWNLOAD_MAP, cache=CACHE_DOWNLOADED_MAP)
 
     # TODO: Verify that nodes are different
     start_node_id, end_node_id = prompt_for_path(nav_map)

@@ -1,9 +1,11 @@
+import json
 import math
 import requests
 import heapq
 import re
 from waypoint.settings import (
-    FLOORPLAN_URL, BUILDINGS, NODE_PROXIMITY_THRESHOLD, STEP_LENGTH
+    FLOORPLAN_URL, BUILDINGS, NODE_PROXIMITY_THRESHOLD, STEP_LENGTH,
+    CACHE_FILE
 )
 from waypoint.navigation.heading import (
     calculate_turn_direction, is_pointing_to_node
@@ -123,7 +125,7 @@ class PlayerNode(Node):
 
 
 class Map(object):
-    def __init__(self, buildings=BUILDINGS):
+    def __init__(self):
         self.north_map = {}
         self.nodes = {}
         self.graph = Graph()
@@ -133,7 +135,22 @@ class Map(object):
         self.next_node = None   # Next node to hit
         self.steps_to_next_node = 0
 
-        self.download_floorplans(buildings)
+    def init(self, buildings=BUILDINGS, download=True, cache=True):
+        if download:
+            self.download_floorplans(buildings)
+        else:
+            try:
+                with open(CACHE_FILE, 'r') as f:
+                    data = f.read()
+                    self.nodes = json.loads(data)
+            except Exception as e:
+                logger.error('{0}: {1}'.format(type(e).__name__, e))
+                logger.warning('Error loading cache. Downloading instead')
+                self.download_floorplans(buildings)
+
+        if cache:
+            with open(CACHE_FILE, 'w') as f:
+                f.write(json.dumps(self.nodes))
         self.init_graph()
 
     def _has_more_levels(self, populated_levels, next_levels):

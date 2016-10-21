@@ -4,6 +4,11 @@ LOG_LEVEL = logging.DEBUG
 
 FLOORPLAN_URL = 'http://showmyway.comp.nus.edu.sg/getMapInfo.php'
 
+# Cache file
+CACHE_FILE = '/home/pi/waypoint/cache_map.json'
+DOWNLOAD_MAP = True  # If false, use cache
+CACHE_DOWNLOADED_MAP = True
+
 # Map of building and levels to load
 BUILDINGS = {
     '1': (1, 2),
