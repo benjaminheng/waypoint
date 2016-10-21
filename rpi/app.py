@@ -148,13 +148,13 @@ def obstacle_avoidance(speech, nav_map, comms):
         read_uf_sensors(comms)
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
         text = None
-        if uf_front_value and uf_front_value > 20 and uf_front_value < UF_FRONT_THRESHOLD:
+        if uf_front_value is not None and uf_front_value > 20 and uf_front_value < UF_FRONT_THRESHOLD:
             text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('front')
-        elif uf_left_value and uf_left_value > 20 and uf_left_value < UF_LEFT_THRESHOLD:
+        elif uf_left_value is not None and uf_left_value > 20 and uf_left_value < UF_LEFT_THRESHOLD:
             text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('left')
-        elif uf_right_value and uf_right_value > 20 and uf_right_value < UF_RIGHT_THRESHOLD:
+        elif uf_right_value is not None and uf_right_value > 20 and uf_right_value < UF_RIGHT_THRESHOLD:
             text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('right')
-        elif uf_front_value and uf_left_value and uf_right_value:
+        elif uf_front_value is not None and uf_left_value is not None and uf_right_value is not None:
             logger.info('Obstacle cleared.')
             speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
             speech.put(audio_text.OBSTACLE_CLEARED, 5)
@@ -334,9 +334,9 @@ if __name__ == '__main__':
         read_uf_sensors(comms)
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
         if (
-            (uf_front_value and uf_front_value > 20 and uf_front_value < UF_FRONT_THRESHOLD) or
-            (uf_left_value and uf_left_value > 20 and uf_left_value < UF_LEFT_THRESHOLD) or
-            (uf_right_value and uf_right_value > 20 and uf_right_value < UF_RIGHT_THRESHOLD)
+            (uf_front_value is not None and uf_front_value > 20 and uf_front_value < UF_FRONT_THRESHOLD) or
+            (uf_left_value is not None and uf_left_value > 20 and uf_left_value < UF_LEFT_THRESHOLD) or
+            (uf_right_value is not None and uf_right_value > 20 and uf_right_value < UF_RIGHT_THRESHOLD)
         ):
             send_obstacle_speech(speech)
             # Obstacle avoidance routine. This will unblock when cleared
