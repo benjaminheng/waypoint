@@ -123,6 +123,8 @@ def send_turn_speech(speech, direction, angle):
         if text:
             speech.put(text)
             time_since_last_turn_speech = time.time()
+            return True
+    return False
 
 
 def read_uf_sensors(comms):
@@ -157,14 +159,16 @@ def obstacle_avoidance(speech, nav_map, comms):
 
 def reorient_player(speech, nav_map, comms):
     logger.info('Reorienting user')
-    while not nav_map.is_player_facing_next_node():
+    speech_sent = False
+    while not speech_sent or not nav_map.is_player_facing_next_node():
+        time.sleep(0.2)
         logger.info(nav_map.player.heading)
         compass = comms.get_packet(DeviceID.COMPASS)
         if compass:
             nav_map.player.set_heading(compass.data)
 
         direction, angle = nav_map.calculate_player_turn_direction()
-        send_turn_speech(speech, direction, angle)
+        speech_sent = send_turn_speech(speech, direction, angle)
     logger.info('End reorienting user')
     speech.put(audio_text.PROCEED_FORWARD)
 
