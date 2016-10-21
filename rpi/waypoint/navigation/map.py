@@ -137,7 +137,7 @@ class Map(object):
 
     def init(self, buildings=BUILDINGS, download=True, cache=False):
         if download:
-            self.download_floorplans(buildings)
+            self.download_floorplans(buildings, use_cache=True)
         else:
             try:
                 with open(CACHE_FILE, 'r') as f:
@@ -185,18 +185,23 @@ class Map(object):
     def is_valid_node(self, node_id):
         return node_id in self.nodes
 
-    def download_floorplans(self, buildings, cache=False):
+    def download_floorplans(self, buildings, cache=False, use_cache=False):
         for building, levels in buildings.items():
             for level in levels:
                 data = {
                     'Building': building,
                     'Level': level,
                 }
-                resp = requests.get(FLOORPLAN_URL, params=data)
-                if resp.status_code != 200:
-                    return
-
-                result = resp.json()
+                if use_cache:
+                    resp = requests.get(FLOORPLAN_URL, params=data)
+                    if resp.status_code != 200:
+                        return
+                    result = resp.json()
+                else:
+                    path = CACHE_FILE.format(building, level)
+                    with open(path) as f:
+                        data = f.read()
+                        result = json.loads(data)
                 key = self._get_map_key(building, level)
                 self.north_map[key] = (
                     int(result.get('info', {}).get('northAt'))
