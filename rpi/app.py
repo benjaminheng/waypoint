@@ -160,6 +160,7 @@ def obstacle_avoidance(speech, nav_map, comms, initial_values):
         read_uf_sensors(comms)
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
         text = None
+        side = None
         front_text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('front')
         left_text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('left')
         right_text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('right')
@@ -167,14 +168,17 @@ def obstacle_avoidance(speech, nav_map, comms, initial_values):
                 uf_front_value > 10 and \
                 uf_front_value < UF_FRONT_THRESHOLD:
             text = front_text
+            side = 'front'
         elif uf_left_value is not None and \
                 uf_left_value > 10 and \
                 uf_left_value < UF_LEFT_THRESHOLD:
             text = left_text
+            side = 'left'
         elif uf_right_value is not None and \
                 uf_right_value > 10 and \
                 uf_right_value < UF_RIGHT_THRESHOLD:
             text = right_text
+            side = 'right'
         elif uf_front_value is not None and \
                 uf_left_value is not None and \
                 uf_right_value is not None:
@@ -188,7 +192,7 @@ def obstacle_avoidance(speech, nav_map, comms, initial_values):
             speech.put(audio_text.OBSTACLE_CLEARED, 5)
             return
         else:
-            obstacle_speech.put()
+            obstacle_speech.put(side)
             send_obstacle_speech(speech, text=text)
             continue
 
