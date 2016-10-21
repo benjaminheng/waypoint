@@ -466,23 +466,24 @@ void GetCompass( void *pvParameters ){
     compass.read();
     heading = compass.heading();
 
-    //reseting
-    compassBuffer[pointerBuffer++] = heading;
-    compassCount=0;
-    for(int i =0; i< MAXCOMPASS-1; i++)
-    {
-      if(compassBuffer[i] == compassBuffer[i+1])
-        compassCount++;
-    }
-    if(pointerBuffer>=MAXCOMPASS)
-      pointerBuffer=0;
-    if(compassCount >= MAXCOMPASS-1)
-    {
-      Serial.println("compass reset");
-      compass.init();
-      heading = compassBuffer[pointerBuffer];
-    }
-    delay(20);
+//    //reseting
+//    compassBuffer[pointerBuffer++] = heading;
+//    compassCount=0;
+//    for(int i =0; i< MAXCOMPASS-1; i++)
+//    {
+//      if(compassBuffer[i] == compassBuffer[i+1])
+//        compassCount++;
+//    }
+//    if(pointerBuffer>=MAXCOMPASS)
+//      pointerBuffer=0;
+//    if(compassCount >= MAXCOMPASS-1)
+//    {
+//      Serial.println("compass reset");
+//      compass.init();
+//      delay(200);
+//      heading = compassBuffer[pointerBuffer-1];
+//    }
+    delay(50);
     //Serial.println("I READ THE COMPASS");
   }
 }
@@ -551,12 +552,11 @@ void ReadUltrasonic1( void *pvParameters ){
 void ReadUltrasonic2( void *pvParameters ){
     for(;;){
       UltrasonicArmRight = MIXLIB.getSR04_ArmRight_cm();
-      if(UltrasonicArmRight < 30) {
+      if(UltrasonicArmRight < 40) {
         digitalWrite(MOTOR_RIGHT, HIGH);
-        Serial.println("HIGH");
         delay(20);
         digitalWrite(MOTOR_LEFT, LOW);
-        delay(UltrasonicArmLeft*15);
+        delay(UltrasonicArmRight*15);
       } else {
         digitalWrite(MOTOR_RIGHT, LOW);
       }
