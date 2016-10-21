@@ -226,7 +226,6 @@ def reorient_player(speech, nav_map, comms):
     speech.clear_with_content_startswith('left')
     speech.clear_with_content_startswith('right')
     speech.clear_with_content_startswith('Slightly')
-    speech.put(audio_text.PROCEED_FORWARD)
 
 
 if __name__ == '__main__':
@@ -357,6 +356,15 @@ if __name__ == '__main__':
                 is_stopped = True
                 # This is a blocking call
                 reorient_player(speech, nav_map, comms)
+                while True:
+                    logger.info('Updating step counter after reorientation')
+                    step_counter = comms.get_packet(DeviceID.STEP_COUNT)
+                    # Break on the first valid packet
+                    if step_counter:
+                        last_steps = step_counter.data
+                        logger.debug('New last_steps: {0}'.format(last_steps))
+                        break
+                speech.put(audio_text.PROCEED_FORWARD)
                 is_stopped = False
 
         # TODO: add prompts when sensor is lost
