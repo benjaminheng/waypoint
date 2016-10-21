@@ -65,7 +65,7 @@ def prompt_for_path(nav_map):
         speech.put(audio_text.SELECT_START_NODE)
         # get current node from keypad
         building1 = wait_for_confirmed_input()
-        building1 = 'COM{0}'.format(building1)
+        building1 = '{0}'.format(building1)
         speech.put(building1)
         level1 = wait_for_confirmed_input()
         speech.put(level1)
@@ -83,7 +83,7 @@ def prompt_for_path(nav_map):
         speech.put(audio_text.SELECT_END_NODE)
         # get destination node
         building2 = wait_for_confirmed_input()
-        building2 = 'COM{0}'.format(building2)
+        building2 = '{0}'.format(building2)
         speech.put(building2)
         level2 = wait_for_confirmed_input()
         speech.put(level2)
