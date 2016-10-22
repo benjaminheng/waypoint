@@ -21,7 +21,7 @@ BUILDINGS = {
     '2': (2, 3),
 }
 
-STEP_LENGTH = 50
+STEP_LENGTH = 60
 
 # How close to the node before we consider ourselves to be at the node
 NODE_PROXIMITY_THRESHOLD = 50
