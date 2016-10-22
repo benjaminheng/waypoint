@@ -17,8 +17,7 @@ CACHE_FILES = [
 
 # Map of building and levels to load
 BUILDINGS = {
-    '1': (1, 2),
-    '2': (2, 3),
+    '42': (5,),
 }
 
 STEP_LENGTH = 60
