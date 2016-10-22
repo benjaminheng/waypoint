@@ -391,6 +391,14 @@ if __name__ == '__main__':
 
                 # Check if player needs to be reoriented after reaching node
                 reorient_player(speech, nav_map, comms)
+                while True:
+                    logger.info('Updating step counter after reorientation')
+                    step_counter = comms.get_packet(DeviceID.STEP_COUNT)
+                    # Break on the first valid packet
+                    if step_counter:
+                        last_steps = step_counter.data
+                        logger.debug('New last_steps: {0}'.format(last_steps))
+                        break
                 speech.put(audio_text.PROCEED_FORWARD)
                 # Reset step count between nodes
                 steps_since_last_node = 0
