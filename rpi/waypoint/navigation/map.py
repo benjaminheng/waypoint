@@ -1,9 +1,11 @@
+import json
 import math
 import requests
 import heapq
 import re
 from waypoint.settings import (
-    FLOORPLAN_URL, BUILDINGS, NODE_PROXIMITY_THRESHOLD
+    FLOORPLAN_URL, BUILDINGS, NODE_PROXIMITY_THRESHOLD, STEP_LENGTH,
+    CACHE_FILE
 )
 from waypoint.navigation.heading import (
     calculate_turn_direction, is_pointing_to_node
@@ -68,13 +70,13 @@ class Node(object):
     @property
     def audio_components(self):
         building, level, node = self.components
-        try:
-            match = BUILDING_RE.match(building)
-            building_name = match.group('building')
-            building_id = match.group('building_id')
-            building = '{0}, {1}'.format(building_name, building_id)
-        except:
-            pass
+        # try:
+        #     match = BUILDING_RE.match(building)
+        #     building_name = match.group('building')
+        #     building_id = match.group('building_id')
+        #     building = '{0}, {1}'.format(building_name, building_id)
+        # except:
+        #     pass
         return building, level, node
 
     @classmethod
@@ -119,11 +121,12 @@ class PlayerNode(Node):
         )
 
     def set_heading(self, heading):
+        heading = heading % 360
         self.heading = heading
 
 
 class Map(object):
-    def __init__(self, buildings=BUILDINGS):
+    def __init__(self):
         self.north_map = {}
         self.nodes = {}
         self.graph = Graph()
@@ -131,8 +134,26 @@ class Map(object):
 
         self.path = []          # Path to take to get to destination
         self.next_node = None   # Next node to hit
+        self.steps_to_next_node = 0
 
-        self.download_floorplans(buildings)
+    def init(self, buildings=BUILDINGS, download=True, cache=False):
+        if download:
+            self.download_floorplans(buildings, use_cache=not download)
+        else:
+            try:
+                with open(CACHE_FILE, 'r') as f:
+                    logger.info('Reading from cache file')
+                    data = f.read()
+                    self.nodes = json.loads(data)
+            except Exception as e:
+                logger.error('{0}: {1}'.format(type(e).__name__, e))
+                logger.warning('Error loading cache. Downloading instead')
+                self.download_floorplans(buildings)
+
+        # if cache:
+        #     with open(CACHE_FILE, 'w') as f:
+        #         logger.info('Writing to cache file')
+        #         f.write(json.dumps(self.nodes))
         self.init_graph()
 
     def _has_more_levels(self, populated_levels, next_levels):
@@ -155,21 +176,34 @@ class Map(object):
     def _get_map_key(self, building, level):
         return '{0}_{1}'.format(building, level)
 
+    def set_steps_to_next_node(self):
+        distance = math.hypot(
+            abs(self.next_node.x - self.player.x),
+            abs(self.next_node.y - self.player.y),
+        )
+        self.steps_to_next_node = math.ceil(float(distance) / STEP_LENGTH)
+
     def is_valid_node(self, node_id):
         return node_id in self.nodes
 
-    def download_floorplans(self, buildings):
+    def download_floorplans(self, buildings, cache=False, use_cache=False):
         for building, levels in buildings.items():
             for level in levels:
                 data = {
                     'Building': building,
                     'Level': level,
                 }
-                resp = requests.get(FLOORPLAN_URL, params=data)
-                if resp.status_code != 200:
-                    return
-
-                result = resp.json()
+                if not use_cache:
+                    resp = requests.get(FLOORPLAN_URL, params=data)
+                    if resp.status_code != 200:
+                        return
+                    result = resp.json()
+                else:
+                    path = CACHE_FILE.format(building, level)
+                    with open(path) as f:
+                        data = f.read()
+                        result = json.loads(data)
+                        logger.info('Loaded cache {0}'.format(path))
                 key = self._get_map_key(building, level)
                 self.north_map[key] = (
                     int(result.get('info', {}).get('northAt'))
