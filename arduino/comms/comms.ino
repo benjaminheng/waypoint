@@ -227,6 +227,15 @@ void setup() {
     ,  NULL
     );
     
+//  xTaskCreate(
+//        ReadInfrared
+//    ,  (const portCHAR *)"ReadInfrared"   
+//    ,  STACKSIZE  // Stack size
+//    ,  NULL
+//    ,  1  // priority
+//    ,  NULL
+//    );
+      
   xTaskCreate(
         ReadUltrasonic1
     ,  (const portCHAR *)"ReadUltrasonic1"   
@@ -534,6 +543,12 @@ void CalcSteps( void *pvParameters ){
   }
 }
 
+//void ReadInfrared( void *pvParameters ){
+//    for(;;){
+//      //todo
+//    }
+//}
+
 void ReadUltrasonic1( void *pvParameters ){
     for(;;){
       UltrasonicArmLeft = MIXLIB.getSR04_ArmLeft_cm();
@@ -555,7 +570,7 @@ void ReadUltrasonic2( void *pvParameters ){
       if(UltrasonicArmRight < 40) {
         digitalWrite(MOTOR_RIGHT, HIGH);
         delay(20);
-        digitalWrite(MOTOR_LEFT, LOW);
+        digitalWrite(MOTOR_RIGHT, LOW);
         delay(UltrasonicArmRight*15);
       } else {
         digitalWrite(MOTOR_RIGHT, LOW);
