@@ -68,7 +68,7 @@ class Tone(Thread):
             count = 0
             for buf in izip(*[samples]*self.sample_rate):
                 self.stream.write(
-                    bytes(bytearray([i*self.volume for i in buf]))
+                    bytes(bytearray([int(i*self.volume) for i in buf]))
                 )
                 count += 1
                 if count >= offset:
