@@ -23,6 +23,7 @@ class DeviceID(object):
     KALMAN_FILTER = 4
     STEP_COUNT = 5
     COMPASS = 6
+    INFRARED = 7
 
 
 class Packet(object):
