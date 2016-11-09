@@ -12,13 +12,15 @@ def get_samples(frequency, volume, sample_rate, n_samples):
     samples = (
         int(
             # (volume * math.sin(2 * math.pi * frequency * t / sample_rate)) *
-            (math.sin(2 * math.pi * frequency * t / sample_rate)) *
-            0x7f +
-            0x80
+            math.sin(2 * math.pi * frequency * t / sample_rate)
         )
         for t in xrange(n_samples)  # NOQA
     )
     return samples
+
+
+def normalize(sample, volume):
+    return int(sample * volume * 0x7f + 0x80)
 
 
 def sine_tone(frequency, duration, volume=1, sample_rate=22050):
@@ -67,8 +69,10 @@ class Tone(Thread):
             # write several samples at a time
             count = 0
             for buf in izip(*[samples]*self.sample_rate):
+                print(buf)
+                raw_input()
                 self.stream.write(
-                    bytes(bytearray([int(i*self.volume) for i in buf]))
+                    bytes(bytearray([normalize(i) for i in buf]))
                 )
                 count += 1
                 if count >= offset:
