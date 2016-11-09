@@ -1,6 +1,9 @@
 import time
 import RPi.GPIO as GPIO
-import time
+from threading import Thread
+from waypoint.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # Columns 1 - 3
 COLUMNS = [16, 11, 13]
@@ -58,7 +61,7 @@ def wait_for_input(timeout=None):
             if count > 10:
                 return lastKey
         # Timeout
-        if timeout and time.time() - start > 10:
+        if timeout is not None and time.time() - start > timeout:
             return None
 
 
@@ -84,3 +87,33 @@ def get_input():
                     return None
         GPIO.output(column, GPIO.LOW)
     return None
+
+
+class KeypadThread(Thread):
+    def __init__(self):
+        super(KeypadThread, self).__init__()
+        self.callbacks = {}
+        self.enable = False
+
+    def register_callback(self, code, callback_func, args=[]):
+        self.callbacks[code] = (callback_func, args,)
+
+    def unregister_callback(self, code):
+        try:
+            del self.callbacks[code]
+        except:
+            logger.warning('Excepting unregistering callback "*"')
+
+    def run(self):
+        while True:
+            try:
+                if self.enable:
+                    code = wait_for_confirmed_input()
+                    if code in self.callbacks:
+                        func, args = self.callbacks.get(code)
+                        logger.info('Callback: {0}'.format(func))
+                        func(*args)
+                else:
+                    time.sleep(1)
+            except Exception as e:
+                logger.warning('{0}: {1}'.format(type(e).__name__, e))

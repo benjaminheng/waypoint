@@ -1,3 +1,4 @@
+import time
 import serial
 import io
 from collections import deque
@@ -19,15 +20,23 @@ class UART(object):
     def read(self):
         self.s.flushInput()
         data = self.serial.readline()
-        packet_type = Packet.get_packet_type(data)
-        data = data.encode('raw_unicode_escape')
-        return packet_type, data
+        if data:
+            try:
+                packet_type = Packet.get_packet_type(data)
+                data = data.encode('raw_unicode_escape')
+                return packet_type, data
+            except Exception as e:
+                logger.warning('{0}:: {1}'.format(type(e).__name__, e))
+        return (None, None)
 
 
 class Comms(Thread):
     def __init__(self, uart_device, baudrate=115200,
                  timeout=None, **kwargs):
         super(Comms, self).__init__()
+        self.last_received = time.time()
+        self.is_dead = False
+        self.dead_callback = None
         self.device_queue = {
             DeviceID.ULTRASOUND_FRONT: deque(maxlen=5),
             DeviceID.ULTRASOUND_LEFT: deque(maxlen=5),
@@ -52,15 +61,34 @@ class Comms(Thread):
                 return None
         return None
 
+    def register_dead_callback(self, func):
+        self.dead_callback = func
+
     def run(self):
         """Communication protocol implemented as a thread.
 
         Populates queue with packets received, which can be retrieved
         from the main thread.
         """
+        callback_called = False
         while True:
             try:
                 packet_type, data = self.uart.read()
+                if packet_type is None:
+                    continue
+                if (
+                    packet_type is None and
+                    self.dead_callback is not None and
+                    not self.is_dead
+                ):
+                    self.dead_callback()
+                    callback_called = True
+                    self.is_dead = True
+                elif packet_type is not None:
+                    self.is_dead = False
+                if callback_called and not self.is_dead:
+                    callback_called = False
+
                 is_packet_valid = Packet.validate_checksum(data)
                 if is_packet_valid:
                     if packet_type == PacketType.DATA:

@@ -8,11 +8,14 @@ from waypoint.navigation.heading import (
 from waypoint.audio.text_to_speech import TextToSpeech, ObstacleSpeech
 from waypoint.firmware.comms import Comms
 from waypoint.firmware.packet import DeviceID
-from waypoint.firmware.keypad import wait_for_confirmed_input
+from waypoint.firmware.keypad import (
+    wait_for_confirmed_input, wait_for_input, KeypadThread
+)
 from waypoint.audio import constants as audio_text
 from waypoint.settings import (
     UF_FRONT_THRESHOLD, UF_LEFT_THRESHOLD, UF_RIGHT_THRESHOLD,
-    DOWNLOAD_MAP, CACHE_DOWNLOADED_MAP, COMPASS_OFFSET
+    DOWNLOAD_MAP, CACHE_DOWNLOADED_MAP, COMPASS_OFFSET,
+    DISABLE_UF_EDGES
 )
 
 logger = get_logger(__name__)
@@ -35,6 +38,13 @@ uf_history = {
 
 # If player has been told to stop
 is_stopped = False
+
+# Set app_enable to True for continuous running
+app_enable = True
+obstacle_avoidance_enable = True
+
+# Set to true to override player position to next node
+override_next_node = False
 
 
 def get_uf_values():
@@ -161,68 +171,72 @@ def read_uf_sensors(comms):
         put_uf_value(DeviceID.ULTRASOUND_RIGHT, uf_right.data)
 
 
-def obstacle_avoidance(speech, nav_map, comms, initial_values):
-    initial_uf_front_value, initial_uf_left_value, initial_uf_right_value = (
-        initial_values
+def is_uf_value_within_threshold(uf_value, threshold):
+    return (
+        uf_value is not None and
+        uf_value > 10 and
+        uf_value < threshold
     )
-    while True:
+
+
+# Staircase mode
+def quit_obstacle_avoidance(keypad):
+    global obstacle_avoidance_enable
+    obstacle_avoidance_enable = False
+    keypad.unregister_callback('*')
+
+
+def staircase_mode(speech, nav_map, comms, keypad):
+    global app_enable
+    global obstacle_avoidance_enable
+    global override_next_node
+    keypad.register_callback('*', quit_obstacle_avoidance, [keypad])
+    obstacle_avoidance_enable = True
+    while app_enable:
+        if not obstacle_avoidance_enable or override_next_node:
+            obstacle_speech.clear_queue()
+            keypad.unregister_callback('*')
+            return
+
+
+def obstacle_avoidance(speech, nav_map, comms, keypad):
+    global app_enable
+    global override_next_node
+    while app_enable:
+        if override_next_node:
+            obstacle_speech.clear_queue()
+            return
         read_uf_sensors(comms)
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
-        text = None
         side = None
-        front_text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('front')
-        left_text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('left')
-        right_text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('right')
-        if uf_front_value is not None and \
-                uf_front_value > 10 and \
-                uf_front_value < UF_FRONT_THRESHOLD:
-            text = front_text
+
+        if is_uf_value_within_threshold(uf_front_value, UF_FRONT_THRESHOLD):
             side = 'front'
-        elif uf_left_value is not None and \
-                uf_left_value > 10 and \
-                uf_left_value < UF_LEFT_THRESHOLD:
-            text = left_text
+        elif is_uf_value_within_threshold(uf_left_value, UF_LEFT_THRESHOLD):
             side = 'left'
-        elif uf_right_value is not None and \
-                uf_right_value > 10 and \
-                uf_right_value < UF_RIGHT_THRESHOLD:
-            text = right_text
+        elif is_uf_value_within_threshold(uf_right_value, UF_RIGHT_THRESHOLD):
             side = 'right'
-        elif uf_front_value is not None and \
-                uf_left_value is not None and \
-                uf_right_value is not None:
+        elif (
+            # Ignore left and right sensors if set to disabled
+            uf_front_value is not None and
+            uf_left_value is not None and
+            uf_right_value is not None
+        ):
             logger.info('Obstacle cleared.')
-            # speech.clear_with_content_startswith('Obstacle')
-            speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
-            speech.clear_with_content(front_text)
-            speech.clear_with_content(left_text)
-            speech.clear_with_content(right_text)
             obstacle_speech.clear_queue()
-            # speech.put(audio_text.OBSTACLE_CLEARED, 5)
+            keypad.unregister_callback('*')
             return
         if side:
             obstacle_speech.put(side)
-        # if text:
-        #     send_obstacle_speech(speech, text=text)
-
-        # if (
-        #     (uf_front_value and uf_front_value < UF_FRONT_THRESHOLD) or
-        #     (uf_left_value and uf_left_value < UF_LEFT_THRESHOLD) or
-        #     (uf_right_value and uf_right_value < UF_RIGHT_THRESHOLD)
-        # ):
-            # send_obstacle_speech(speech)
-        # elif uf_front_value and uf_left_value and uf_right_value:
-            # logger.info('Obstacle cleared.')
-            # speech.put(audio_text.OBSTACLE_CLEARED, 5)
-            # return
-        # else:
-            # continue
 
 
 def reorient_player(speech, nav_map, comms):
+    global app_enable
+    global override_next_node
     logger.info('Reorienting user')
     count = 0
-    while True:
+    # If app is enabled and we aren't overriding the node
+    while app_enable and not override_next_node:
         compass = comms.get_packet(DeviceID.COMPASS)
         if compass:
             nav_map.player.set_heading(compass.data + COMPASS_OFFSET)
@@ -234,7 +248,7 @@ def reorient_player(speech, nav_map, comms):
             count = 0
         direction, angle = nav_map.calculate_player_turn_direction()
         send_turn_speech(speech, direction, angle)
-        if count >= 12:
+        if count >= 6:
             break
         time.sleep(0.2)
 
@@ -242,17 +256,11 @@ def reorient_player(speech, nav_map, comms):
         read_uf_sensors(comms)
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
         side = None
-        if uf_front_value is not None and \
-                uf_front_value > 10 and \
-                uf_front_value < UF_FRONT_THRESHOLD:
+        if is_uf_value_within_threshold(uf_front_value, UF_FRONT_THRESHOLD):
             side = 'front'
-        elif uf_left_value is not None and \
-                uf_left_value > 10 and \
-                uf_left_value < UF_LEFT_THRESHOLD:
+        elif is_uf_value_within_threshold(uf_left_value, UF_LEFT_THRESHOLD):
             side = 'left'
-        elif uf_right_value is not None and \
-                uf_right_value > 10 and \
-                uf_right_value < UF_RIGHT_THRESHOLD:
+        elif is_uf_value_within_threshold(uf_right_value, UF_RIGHT_THRESHOLD):
             side = 'right'
         elif uf_front_value is not None and \
                 uf_left_value is not None and \
@@ -261,35 +269,58 @@ def reorient_player(speech, nav_map, comms):
         if side:
             obstacle_speech.put(side)
     logger.info('End reorienting user')
+    obstacle_speech.clear_queue()
     speech.clear_with_content_startswith('left')
     speech.clear_with_content_startswith('right')
-    speech.clear_with_content_startswith('Slightly')
+    speech.clear_with_content_startswith('Slight')
+    logger.info('Speech queue: {0}'.format(speech.queue.queue))
 
 
-if __name__ == '__main__':
-    logger.info('Starting Waypoint')
-    comms = Comms('/dev/ttyAMA0')
-    comms.start()
+def prompt_to_reset_comms():
+    speech.put(audio_text.RESET_COMMS)
 
-    speech = TextToSpeech()
-    speech.daemon = True
-    speech.start()
 
-    obstacle_speech = ObstacleSpeech()
-    obstacle_speech.daemon = True
-    obstacle_speech.start()
+def set_to_next_node():
+    global override_next_node
+    override_next_node = True
 
-    nav_map = Map()
-    nav_map.init(download=DOWNLOAD_MAP, cache=CACHE_DOWNLOADED_MAP)
+
+def stop_app():
+    global app_enable
+    logger.info('Restarting app')
+    app_enable = False
+
+
+def destination_speech(speech):
+    speech.put(audio_text.STOP, 1)
+    speech.put(audio_text.DESTINATION_REACHED, 1)
+    speech.put(audio_text.YOU_ARE_THE_BEST, 1)
+    logger.info('Destination reached!')
+
+
+def app(comms, speech, obstacle_speech, keypad, nav_map):
+    global app_enable
+    global is_stopped
+    global override_next_node
+
+    obstacle_speech.clear_queue()
+    speech.clear_queue()
 
     # TODO: Verify that nodes are different
     start_node_id, end_node_id = prompt_for_path(nav_map)
+    logger.info('Player selected start and destination.')
     # start_node_id, end_node_id = '1_2_21', '1_2_28'
     logger.info('Getting optimal path for: {0}, {1}'.format(
         start_node_id, end_node_id
     ))
     nav_map.search(start_node_id, end_node_id)
     logger.info(nav_map.path)
+
+    # TODO: debugging. remove.
+    for node in nav_map.path:
+        logger.info('{0} -> is_staircase={1}'.format(
+            node.id, node.is_staircase
+        ))
 
     # TODO: validate path exists
 
@@ -334,6 +365,7 @@ if __name__ == '__main__':
     last_steps = 0
     steps_since_last_node = 0
     time_since_last_speech = 0
+    disable_uf = False
 
     # initialize step counter
     while True:
@@ -348,13 +380,32 @@ if __name__ == '__main__':
     speech.put(audio_text.PROCEED_FORWARD_STEPS.format(
         nav_map.steps_to_next_node
     ))
-    while True:
+
+    # Start navigation!
+    app_enable = True
+    keypad.enable = True
+    while app_enable:
+        if comms.is_dead:
+            while comms.is_dead:
+                time.sleep(0.2)
+            # Update step counter to ignore steps during avoidance
+            while True:
+                logger.info('Updating step counter after obstacle avoidance')
+                step_counter = comms.get_packet(DeviceID.STEP_COUNT)
+                # Break on the first valid packet
+                if step_counter:
+                    last_steps = step_counter.data
+                    logger.debug('New last_steps: {0}'.format(last_steps))
+                    break
         step_counter = comms.get_packet(DeviceID.STEP_COUNT)
-        if step_counter and step_counter.data > last_steps:
+        if (step_counter and step_counter.data > last_steps) or \
+                override_next_node:
             delta = step_counter.data - last_steps
             last_steps = step_counter.data
             step_count += delta
             steps_since_last_node += delta
+            if override_next_node:
+                logger.debug('Node overridden!')
             logger.debug('step_count = {0}; steps_since_last_node = {1}'
                          .format(step_count, steps_since_last_node))
 
@@ -369,25 +420,81 @@ if __name__ == '__main__':
                 ))
 
             # Player is near the next node, set his position to it.
-            if nav_map.is_player_near_next_node():
-                building, level, node = nav_map.next_node.audio_components
-                logger.info('----------------------------------------')
-                logger.info((building, level, node))
-                logger.info('Player is near next node.')
-                speech.put(audio_text.STOP, 2)
+            # near_staircase = nav_map.is_player_near_staircase_node()
+            near_next_node = nav_map.is_player_near_next_node()
+            if near_next_node or override_next_node:
                 is_stopped = True
-                speech.put(audio_text.CURRENT_POSITION.format(
-                    building, level, node
-                ), 1)
-                nav_map.player.set_position_to_node(nav_map.next_node)
+                if near_next_node or override_next_node:
+                    building, level, node = (
+                        nav_map.next_node.audio_components
+                    )
+                    logger.info('----------------------------------------')
+                    logger.info((building, level, node))
+                    logger.info('Player is near next node.')
+                    speech.put(audio_text.CURRENT_POSITION.format(
+                        building, level, node
+                    ), 1)
+                    if nav_map.next_node.is_staircase:
+                        # If near staircase,
+                        # 1. set position to the next node
+                        # 2. enter staircase mode (obstacle avoidance)
+                        # 3. continue and set player location to next node
+                        nav_map.player.set_position_to_node(nav_map.next_node)
+                        nav_map.next_node = nav_map.path.pop(0)
+
+                        # If change in level, do the same as change in building
+                        if nav_map.player.level != nav_map.next_node.level:
+                            building, level, node = (
+                                nav_map.next_node.audio_components
+                            )
+                            logger.info('----------------------')
+                            logger.info((building, level, node))
+                            logger.info('Player is near next node.')
+                            speech.put(audio_text.CURRENT_POSITION.format(
+                                building, level, node
+                            ), 1)
+                            nav_map.player.set_position_to_node(
+                                nav_map.next_node
+                            )
+                            nav_map.next_node = nav_map.path.pop(0)
+
+                        speech.put(audio_text.STAIRCASE_AHEAD, 2)
+                        staircase_mode(speech, nav_map, comms, keypad)
+                        nav_map.player.set_position_to_node(nav_map.next_node)
+                        building, level, node = (
+                            nav_map.next_node.audio_components
+                        )
+                        logger.info('----------------------------------------')
+                        logger.info((building, level, node))
+                        logger.info('Player is near next node.')
+                        speech.put(audio_text.CURRENT_POSITION.format(
+                            building, level, node
+                        ), 1)
+                    else:
+                        nav_map.player.set_position_to_node(nav_map.next_node)
+                override_next_node = False
                 if len(nav_map.path) == 0:
-                    speech.put(audio_text.STOP, 1)
-                    speech.put(audio_text.DESTINATION_REACHED, 1)
-                    speech.put(audio_text.YOU_ARE_THE_BEST, 1)
-                    logger.info('Destination reached!')
-                    # TODO: prompt for new path
+                    # destination reached
+                    destination_speech(speech)
                 else:
+                    prev_node = nav_map.next_node
                     nav_map.next_node = nav_map.path.pop(0)
+                    if (
+                        nav_map.player.building != nav_map.next_node.building or  # NOQA
+                        nav_map.player.level != nav_map.next_node.level
+                    ):
+                        nav_map.player.set_position_to_node(nav_map.next_node)
+                        nav_map.next_node = nav_map.path.pop(0)
+                        if len(nav_map.path) == 0:
+                            # destination reached
+                            destination_speech(speech)
+                    if (
+                        nav_map.next_node.id in DISABLE_UF_EDGES and
+                        prev_node.id == DISABLE_UF_EDGES.get(
+                            nav_map.next_node.id
+                        )
+                    ):
+                        disable_uf = True
 
                 # Check if player needs to be reoriented after reaching node
                 reorient_player(speech, nav_map, comms)
@@ -399,7 +506,11 @@ if __name__ == '__main__':
                         last_steps = step_counter.data
                         logger.debug('New last_steps: {0}'.format(last_steps))
                         break
-                speech.put(audio_text.PROCEED_FORWARD)
+                # speech.put(audio_text.PROCEED_FORWARD)
+                speech.clear_with_content_startswith('Proceed')
+                speech.put(audio_text.PROCEED_FORWARD_STEPS.format(
+                    nav_map.get_steps_to_next_node()
+                ))
                 # Reset step count between nodes
                 steps_since_last_node = 0
                 is_stopped = False
@@ -420,7 +531,11 @@ if __name__ == '__main__':
                         last_steps = step_counter.data
                         logger.debug('New last_steps: {0}'.format(last_steps))
                         break
-                speech.put(audio_text.PROCEED_FORWARD)
+                # speech.put(audio_text.PROCEED_FORWARD)
+                speech.clear_with_content_startswith('Proceed')
+                speech.put(audio_text.PROCEED_FORWARD_STEPS.format(
+                    nav_map.get_steps_to_next_node()
+                ))
                 is_stopped = False
 
         # TODO: add prompts when sensor is lost
@@ -428,18 +543,18 @@ if __name__ == '__main__':
         read_uf_sensors(comms)
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
         if (
-            (uf_front_value is not None and uf_front_value > 10 and uf_front_value < UF_FRONT_THRESHOLD) or
-            (uf_left_value is not None and uf_left_value > 10 and uf_left_value < UF_LEFT_THRESHOLD) or
-            (uf_right_value is not None and uf_right_value > 10 and uf_right_value < UF_RIGHT_THRESHOLD)
+            not disable_uf and
+            is_uf_value_within_threshold(uf_front_value, UF_FRONT_THRESHOLD) or
+            is_uf_value_within_threshold(uf_left_value, UF_LEFT_THRESHOLD) or  # NOQA
+            is_uf_value_within_threshold(uf_right_value, UF_RIGHT_THRESHOLD)  # NOQA
         ):
             # send_obstacle_speech(speech, immediate=True)
             # Obstacle avoidance routine. This will unblock when cleared
             logger.info('Obstacle detected. Entering obstacle avoidance.')
-            initial_values = (
-                uf_front_value, uf_left_value, uf_right_value,
-            )
-            obstacle_avoidance(speech, nav_map, comms,
-                               initial_values=initial_values)
+            # initial_values = (
+            #     uf_front_value, uf_left_value, uf_right_value,
+            # )
+            obstacle_avoidance(speech, nav_map, comms, keypad)
             # speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
             # speech.clear_with_content_startswith('Obstacle')
 
@@ -454,3 +569,31 @@ if __name__ == '__main__':
                     last_steps = step_counter.data
                     logger.debug('New last_steps: {0}'.format(last_steps))
                     break
+
+
+if __name__ == '__main__':
+    logger.info('Starting Waypoint')
+    comms = Comms('/dev/ttyAMA0', timeout=2)
+    comms.start()
+
+    speech = TextToSpeech()
+    speech.daemon = True
+    speech.start()
+
+    obstacle_speech = ObstacleSpeech()
+    obstacle_speech.daemon = True
+    obstacle_speech.start()
+
+    keypad = KeypadThread()
+    keypad.daemon = True
+    keypad.start()
+
+    nav_map = Map()
+    nav_map.init(download=DOWNLOAD_MAP, cache=CACHE_DOWNLOADED_MAP)
+
+    keypad.register_callback('999', stop_app)
+    comms.register_dead_callback(prompt_to_reset_comms)
+
+    # app() is blocking. Restart app on new iteration
+    while True:
+        app(comms, speech, obstacle_speech, keypad, nav_map)
