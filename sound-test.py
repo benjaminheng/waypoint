@@ -7,7 +7,7 @@ from pyaudio import PyAudio
 from itertools import izip
 
 
-def get_samples(frequency, volume, sample_rate):
+def get_samples(frequency, volume, sample_rate, n_samples):
     samples = (
         int(
             (volume * math.sin(2 * math.pi * frequency * t / sample_rate)) *
@@ -28,7 +28,7 @@ def sine_tone(frequency, duration, volume=1, sample_rate=22050):
                     channels=1,  # mono
                     rate=sample_rate,
                     output=True)
-    samples = get_samples(frequency, volume, sample_rate)
+    samples = get_samples(frequency, volume, sample_rate, n_samples)
     for buf in izip(*[samples]*sample_rate):  # write several samples at a time
         stream.write(bytes(bytearray(buf)))
     # fill remainder of frameset with silence
