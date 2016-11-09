@@ -35,6 +35,7 @@ class Comms(Thread):
             DeviceID.KALMAN_FILTER: deque(maxlen=5),
             DeviceID.STEP_COUNT: deque(maxlen=1),
             DeviceID.COMPASS: deque(maxlen=5),
+            DeviceID.INFRARED: deque(maxlen=5),
         }
         self.uart = UART(
             uart_device,
