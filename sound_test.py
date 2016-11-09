@@ -65,11 +65,16 @@ class Tone(Thread):
         offset = self.sample_rate / 2   # 0.5sec
         while True:
             # write several samples at a time
-            for buf in izip(*[samples[idx:idx+offset]]*self.sample_rate):
+            count = 0
+            for buf in izip(*[samples]*self.sample_rate):
                 self.stream.write(
                     bytes(bytearray([i*self.volume for i in buf]))
                 )
+                count += 1
+                if count >= offset:
+                    break
             idx += offset
+
 
 if __name__ == '__main__':
     tone = Tone()
