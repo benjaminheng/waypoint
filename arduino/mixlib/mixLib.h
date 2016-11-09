@@ -16,6 +16,7 @@ class mixLib
 		int getSR08_Front(void);
 		int getSR02_Left(void);
 		int getSR02_Right(void);
+		int getInfrared_cm();
 		
 		int16_t getAccX(void);
 		int16_t getAccY(void);

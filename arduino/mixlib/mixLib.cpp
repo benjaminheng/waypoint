@@ -8,6 +8,7 @@
 #define PIN_TRIG_SR04_ARM_LEFT 41
 #define PIN_ECHO_SR04_ARM_RIGHT 35
 #define PIN_TRIG_SR04_ARM_RIGHT 37
+#define PIN_INFRARED 0
 
 
 mixLib::mixLib(void)
@@ -222,4 +223,13 @@ int mixLib::getSR02_Left()
     reading |= Wire.read(); 
     return reading;
   }
+}
+
+int mixLib::getInfrared_cm()
+{
+	float sensorValue = 0;
+	sensorValue = analogRead(PIN_INFRARED);
+	sensorValue = 10650.08 * pow(sensorValue,-0.935) - 10;
+	
+	return (int)sensorValue;
 }

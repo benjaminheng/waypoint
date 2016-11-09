@@ -22,13 +22,12 @@ Kalman kalmanY;
 #define DEVICE_PAYLOAD_SIZE 3
 
 #define STACKSIZE 512   
-
-#define MAX_BUFFER 25
+#define MAX_BUFFER 25 //for steps
 
 //define for compass reset
-#define MAXCOMPASS 10
+#define MAXCOMPASS 15
 uint16_t compassBuffer[MAXCOMPASS];
-int pointerBuffer =0;
+int pointerBuffer = 0;
 int compassCount;
 
 
@@ -90,20 +89,21 @@ typedef struct PacketHeader
 {
     uint8_t packetType;
     uint8_t numDevices;
-};
+}PacketHeader;
 
 // Update DEVICE_PAYLOAD_SIZE if changed
 typedef struct DevicePayload 
 {
     uint8_t id;
     uint16_t data;
-};
+}DevicePayload;
 
 uint16_t UltrasonicArmLeft;
 uint16_t UltrasonicArmRight;
 uint16_t UltrasonicFront;
 uint16_t UltrasonicLeft;
 uint16_t UltrasonicRight;
+uint16_t Infrared;
 //uint16_t ALTIMUGyroX; //output from Kalman task
 uint16_t Num_step;
 uint16_t Total_dist;
@@ -217,6 +217,10 @@ void setup() {
   }
   lastChange_time = millis();
 
+  for(int j=0;j<MAXCOMPASS;j++){
+    compass.read();
+    compassBuffer[j] = compass.heading();
+  }
   
   xTaskCreate(
         SendToPi
@@ -227,14 +231,14 @@ void setup() {
     ,  NULL
     );
     
-//  xTaskCreate(
-//        ReadInfrared
-//    ,  (const portCHAR *)"ReadInfrared"   
-//    ,  STACKSIZE  // Stack size
-//    ,  NULL
-//    ,  1  // priority
-//    ,  NULL
-//    );
+  xTaskCreate(
+        ReadInfrared
+    ,  (const portCHAR *)"ReadInfrared"   
+    ,  STACKSIZE  // Stack size
+    ,  NULL
+    ,  1  // priority
+    ,  NULL
+    );
       
   xTaskCreate(
         ReadUltrasonic1
@@ -471,29 +475,27 @@ void loop()
 
 void GetCompass( void *pvParameters ){
   for(;;){
-    //Serial.println("I GOT INNNNNNNNNNNNNNNNNNNNNNNNN");
     compass.read();
     heading = compass.heading();
 
-//    //reseting
-//    compassBuffer[pointerBuffer++] = heading;
-//    compassCount=0;
-//    for(int i =0; i< MAXCOMPASS-1; i++)
-//    {
-//      if(compassBuffer[i] == compassBuffer[i+1])
-//        compassCount++;
-//    }
-//    if(pointerBuffer>=MAXCOMPASS)
-//      pointerBuffer=0;
-//    if(compassCount >= MAXCOMPASS-1)
-//    {
-//      Serial.println("compass reset");
-//      compass.init();
-//      delay(200);
-//      heading = compassBuffer[pointerBuffer-1];
-//    }
+    //reset if same value for more than MAXCOMPASS times
+    compassBuffer[pointerBuffer] = heading;
+    compassCount = 0;
+    pointerBuffer = (pointerBuffer + 1) % MAXCOMPASS;
+    for(int i = 0; i < MAXCOMPASS-1; i++)
+    {
+      if(compassBuffer[i] == compassBuffer[i+1])
+        compassCount++;
+    }
+    if(compassCount >= MAXCOMPASS-1)
+    {
+      Serial.println("compass reset");
+      compassCount = 0;
+      compass.init();
+      delay(350);
+      heading = compassBuffer[pointerBuffer-1];
+    }
     delay(50);
-    //Serial.println("I READ THE COMPASS");
   }
 }
 
@@ -543,11 +545,11 @@ void CalcSteps( void *pvParameters ){
   }
 }
 
-//void ReadInfrared( void *pvParameters ){
-//    for(;;){
-//      //todo
-//    }
-//}
+void ReadInfrared( void *pvParameters ){
+    for(;;){
+      Infrared = MIXLIB.getInfrared_cm();
+    }
+}
 
 void ReadUltrasonic1( void *pvParameters ){
     for(;;){
@@ -602,7 +604,7 @@ void SendToPi( void *pvParameters ){
     //(void) pvParameters;
     
     for(;;){
-      DevicePayload devices[6];
+      DevicePayload devices[7];
       devices[0].id = 1;
       devices[0].data = UltrasonicFront;
       devices[1].id = 2;
@@ -615,8 +617,11 @@ void SendToPi( void *pvParameters ){
       devices[4].data = Num_step;
       devices[5].id = 6;
       devices[5].data = heading;
+      devices[6].id = 7;
+      devices[6].data = Infrared;
       uint8_t numDevices = sizeof(devices) / sizeof(devices[0]);
       sendData(PACKET_TYPE_DATA, devices, numDevices);
+      //Serial.println(heading);
     }
 }
 
