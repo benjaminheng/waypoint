@@ -399,6 +399,16 @@ if __name__ == '__main__':
                     # TODO: prompt for new path
                 else:
                     nav_map.next_node = nav_map.path.pop(0)
+                    next_node = nav_map.path[0]
+                    if next_node.building != nav_map.next_node.building:
+                        nav_map.player.set_position_to_node(nav_map.next_node)
+                        nav_map.next_node = nav_map.path.pop(0)
+                        # TODO: extract destination reach logic out
+                        if len(nav_map.path) == 0:
+                            speech.put(audio_text.STOP, 1)
+                            speech.put(audio_text.DESTINATION_REACHED, 1)
+                            speech.put(audio_text.YOU_ARE_THE_BEST, 1)
+                            logger.info('Destination reached!')
 
                 # Check if player needs to be reoriented after reaching node
                 reorient_player(speech, nav_map, comms)
