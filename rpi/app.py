@@ -264,6 +264,7 @@ def reorient_player(speech, nav_map, comms):
     speech.clear_with_content_startswith('left')
     speech.clear_with_content_startswith('right')
     speech.clear_with_content_startswith('Slightly')
+    logger.info(speech.queue.queue)
 
 
 if __name__ == '__main__':
@@ -295,6 +296,7 @@ if __name__ == '__main__':
 
     # Prompt to start navigation
     prompt_for_navigation_start()
+    logger.info('Player selected start and destination.')
 
     # Set player position
     start_node = nav_map.path.pop(0)
