@@ -5,7 +5,7 @@ LOG_LEVEL = logging.DEBUG
 FLOORPLAN_URL = 'http://showmyway.comp.nus.edu.sg/getMapInfo.php'
 
 # Cache file
-DOWNLOAD_MAP = True  # If false, use cache
+DOWNLOAD_MAP = False # If false, use cache
 CACHE_DOWNLOADED_MAP = True
 CACHE_FILE = '/home/pi/waypoint/rpi/{0}_{1}.json'
 CACHE_FILES = [
