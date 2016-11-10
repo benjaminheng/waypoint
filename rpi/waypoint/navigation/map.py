@@ -174,12 +174,15 @@ class Map(object):
     def _get_map_key(self, building, level):
         return '{0}_{1}'.format(building, level)
 
-    def set_steps_to_next_node(self):
+    def get_steps_to_next_node(self):
         distance = math.hypot(
             abs(self.next_node.x - self.player.x),
             abs(self.next_node.y - self.player.y),
         )
-        self.steps_to_next_node = math.ceil(float(distance) / STEP_LENGTH)
+        return int(math.ceil(float(distance) / STEP_LENGTH))
+
+    def set_steps_to_next_node(self):
+        self.steps_to_next_node = self.get_steps_to_next_node()
 
     def is_valid_node(self, node_id):
         return node_id in self.nodes

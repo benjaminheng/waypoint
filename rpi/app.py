@@ -161,6 +161,14 @@ def read_uf_sensors(comms):
         put_uf_value(DeviceID.ULTRASOUND_RIGHT, uf_right.data)
 
 
+def is_uf_value_within_threshold(uf_value, threshold):
+    return (
+        uf_front_value is not None and
+        uf_front_value > 10 and
+        uf_front_value < UF_FRONT_THRESHOLD
+    )
+
+
 def obstacle_avoidance(speech, nav_map, comms,
                        manual_quit=False):
     while True:
@@ -176,21 +184,18 @@ def obstacle_avoidance(speech, nav_map, comms,
             if key_input == '*':
                 return
 
-        if uf_front_value is not None and \
-                uf_front_value > 10 and \
-                uf_front_value < UF_FRONT_THRESHOLD:
+        if is_uf_value_within_threshold(uf_front_value, UF_FRONT_THRESHOLD):
             side = 'front'
-        elif uf_left_value is not None and \
-                uf_left_value > 10 and \
-                uf_left_value < UF_LEFT_THRESHOLD:
+        elif is_uf_value_within_threshold(uf_left_value, UF_LEFT_THRESHOLD):
             side = 'left'
-        elif uf_right_value is not None and \
-                uf_right_value > 10 and \
-                uf_right_value < UF_RIGHT_THRESHOLD:
+        elif is_uf_value_within_threshold(uf_right_value, UF_RIGHT_THRESHOLD):
             side = 'right'
-        elif uf_front_value is not None and \
-                uf_left_value is not None and \
-                uf_right_value is not None:
+        elif (
+            not manual_quit and
+            uf_front_value is not None and
+            uf_left_value is not None and
+            uf_right_value is not None
+        ):
             logger.info('Obstacle cleared.')
             # speech.clear_with_content_startswith('Obstacle')
             speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
@@ -242,17 +247,11 @@ def reorient_player(speech, nav_map, comms):
         read_uf_sensors(comms)
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
         side = None
-        if uf_front_value is not None and \
-                uf_front_value > 10 and \
-                uf_front_value < UF_FRONT_THRESHOLD:
+        if is_uf_value_within_threshold(uf_front_value, UF_FRONT_THRESHOLD):
             side = 'front'
-        elif uf_left_value is not None and \
-                uf_left_value > 10 and \
-                uf_left_value < UF_LEFT_THRESHOLD:
+        elif is_uf_value_within_threshold(uf_left_value, UF_LEFT_THRESHOLD):
             side = 'left'
-        elif uf_right_value is not None and \
-                uf_right_value > 10 and \
-                uf_right_value < UF_RIGHT_THRESHOLD:
+        elif is_uf_value_within_threshold(uf_right_value, UF_RIGHT_THRESHOLD):
             side = 'right'
         elif uf_front_value is not None and \
                 uf_left_value is not None and \
@@ -263,8 +262,8 @@ def reorient_player(speech, nav_map, comms):
     logger.info('End reorienting user')
     speech.clear_with_content_startswith('left')
     speech.clear_with_content_startswith('right')
-    speech.clear_with_content_startswith('Slightly')
-    logger.info(speech.queue.queue)
+    speech.clear_with_content_startswith('Slight')
+    logger.info('Speech queue: {0}'.format(speech.queue.queue))
 
 
 if __name__ == '__main__':
@@ -384,7 +383,12 @@ if __name__ == '__main__':
                     speech.put(audio_text.CURRENT_POSITION.format(
                         building, level, node
                     ), 1)
+                # If near staircase,
+                # 1. set position to the next node
+                # 2. enter staircase mode (obstacle avoidance, no steps)
+                # 3. on exit, continue and set player location to next node
                 elif near_staircase:
+                    nav_map.player.set_position_to_node(nav_map.next_node)
                     speech.put(audio_text.STAIRCASE_AHEAD, 1)
                     obstacle_avoidance(
                         speech, nav_map, comms, manual_quit=True
@@ -419,7 +423,10 @@ if __name__ == '__main__':
                         last_steps = step_counter.data
                         logger.debug('New last_steps: {0}'.format(last_steps))
                         break
-                speech.put(audio_text.PROCEED_FORWARD)
+                # speech.put(audio_text.PROCEED_FORWARD)
+                speech.put(audio_text.PROCEED_FORWARD_STEPS.format(
+                    nav_map.get_steps_to_next_node()
+                ))
                 # Reset step count between nodes
                 steps_since_last_node = 0
                 is_stopped = False
@@ -440,7 +447,10 @@ if __name__ == '__main__':
                         last_steps = step_counter.data
                         logger.debug('New last_steps: {0}'.format(last_steps))
                         break
-                speech.put(audio_text.PROCEED_FORWARD)
+                # speech.put(audio_text.PROCEED_FORWARD)
+                speech.put(audio_text.PROCEED_FORWARD_STEPS.format(
+                    nav_map.get_steps_to_next_node()
+                ))
                 is_stopped = False
 
         # TODO: add prompts when sensor is lost
@@ -448,9 +458,9 @@ if __name__ == '__main__':
         read_uf_sensors(comms)
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
         if (
-            (uf_front_value is not None and uf_front_value > 10 and uf_front_value < UF_FRONT_THRESHOLD) or
-            (uf_left_value is not None and uf_left_value > 10 and uf_left_value < UF_LEFT_THRESHOLD) or
-            (uf_right_value is not None and uf_right_value > 10 and uf_right_value < UF_RIGHT_THRESHOLD)
+            is_uf_value_within_threshold(uf_front_value, UF_FRONT_THRESHOLD) or
+            is_uf_value_within_threshold(uf_left_value, UF_LEFT_THRESHOLD) or
+            is_uf_value_within_threshold(uf_right_value, UF_RIGHT_THRESHOLD)
         ):
             # send_obstacle_speech(speech, immediate=True)
             # Obstacle avoidance routine. This will unblock when cleared
