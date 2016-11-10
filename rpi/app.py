@@ -399,8 +399,7 @@ if __name__ == '__main__':
                     # TODO: prompt for new path
                 else:
                     nav_map.next_node = nav_map.path.pop(0)
-                    next_node = nav_map.path[0]
-                    if next_node.building != nav_map.next_node.building:
+                    if nav_map.player.building != nav_map.next_node.building:
                         nav_map.player.set_position_to_node(nav_map.next_node)
                         nav_map.next_node = nav_map.path.pop(0)
                         # TODO: extract destination reach logic out
