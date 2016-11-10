@@ -142,10 +142,7 @@ class Map(object):
             self.download_floorplans(buildings, use_cache=not download)
         else:
             try:
-                with open(CACHE_FILE, 'r') as f:
-                    logger.info('Reading from cache file')
-                    data = f.read()
-                    self.nodes = json.loads(data)
+                self.download_floorplans(buildings, use_cache=True)
             except Exception as e:
                 logger.error('{0}: {1}'.format(type(e).__name__, e))
                 logger.warning('Error loading cache. Downloading instead')
