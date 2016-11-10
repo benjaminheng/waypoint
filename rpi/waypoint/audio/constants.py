@@ -17,7 +17,7 @@ OBSTACLE_CLEARED = 'Obstacle cleared. Proceed forward.'
 PROCEED_FORWARD = 'Proceed forward.'
 PROCEED_FORWARD_STEPS = 'Proceed forward {0} steps.'
 DESTINATION_REACHED = 'Destination reached'
-STAIRCASE_AHEAD = 'Staircase ahead'
+STAIRCASE_AHEAD = 'Stop! Staircase ahead'
 CURRENT_POSITION = 'You are at {0}, {1}, {2}'
 
 YOU_ARE_THE_BEST = 'Congratulations. You are the best.'

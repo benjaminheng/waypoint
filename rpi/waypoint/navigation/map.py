@@ -5,7 +5,7 @@ import heapq
 import re
 from waypoint.settings import (
     FLOORPLAN_URL, BUILDINGS, NODE_PROXIMITY_THRESHOLD, STEP_LENGTH,
-    CACHE_FILE
+    CACHE_FILE, STAIRCASE_NODES, STAIRCASE_NODE_PROXIMITY_THRESHOLD
 )
 from waypoint.navigation.heading import (
     calculate_turn_direction, is_pointing_to_node
@@ -48,7 +48,7 @@ class PriorityQueue(object):
 class Node(object):
     """Describes a node on the map."""
     def __init__(self, node_id, x, y, name, adjacent_node_ids, level,
-                 building):
+                 building, is_staircase=False):
         node_id = self._get_node_id(building, level, node_id)
         adjacent = (
             self._get_node_id(building, level, i.strip())
@@ -61,6 +61,7 @@ class Node(object):
         self.adjacent = adjacent
         self.level = level
         self.building = building
+        self.is_staircase = is_staircase
 
     @property
     def components(self):
@@ -210,6 +211,7 @@ class Map(object):
                 )
 
                 for point in result.get('map', {}):
+                    is_staircase = point.get('nodeId') in STAIRCASE_NODES
                     node = Node(
                         point.get('nodeId'),
                         int(point.get('x')),
@@ -217,9 +219,20 @@ class Map(object):
                         point.get('nodeName'),
                         [i.strip() for i in point.get('linkTo').split(',')],
                         level,
-                        building
+                        building,
+                        is_staircase=is_staircase
                     )
                     self.nodes[node.id] = node
+
+    def is_player_near_staircase_node(self):
+        if not self.next_node.is_staircase:
+            return False
+        x = abs(self.player.x - self.next_node.x)
+        y = abs(self.player.y - self.next_node.y)
+        distance = math.hypot(x, y)
+        if distance <= STAIRCASE_NODE_PROXIMITY_THRESHOLD:
+            return True
+        return False
 
     def is_player_near_next_node(self):
         x = abs(self.player.x - self.next_node.x)

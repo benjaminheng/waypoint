@@ -17,19 +17,24 @@ CACHE_FILES = [
 
 # Map of building and levels to load
 BUILDINGS = {
-    '42': (5,),
+    '1': (1, 2),
+    '2': (2, 3),
 }
 
 STEP_LENGTH = 60
 
 # How close to the node before we consider ourselves to be at the node
 NODE_PROXIMITY_THRESHOLD = 50
+STAIRCASE_NODE_PROXIMITY_THRESHOLD = 300
 
 UF_FRONT_THRESHOLD = 100
 UF_LEFT_THRESHOLD = 100
 UF_RIGHT_THRESHOLD = 100
 
 COMPASS_OFFSET = 0
+
+STAIRCASE_NODES = {
+}
 
 
 try:

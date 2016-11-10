@@ -8,7 +8,7 @@ from waypoint.navigation.heading import (
 from waypoint.audio.text_to_speech import TextToSpeech, ObstacleSpeech
 from waypoint.firmware.comms import Comms
 from waypoint.firmware.packet import DeviceID
-from waypoint.firmware.keypad import wait_for_confirmed_input
+from waypoint.firmware.keypad import wait_for_confirmed_input, wait_for_input
 from waypoint.audio import constants as audio_text
 from waypoint.settings import (
     UF_FRONT_THRESHOLD, UF_LEFT_THRESHOLD, UF_RIGHT_THRESHOLD,
@@ -161,32 +161,32 @@ def read_uf_sensors(comms):
         put_uf_value(DeviceID.ULTRASOUND_RIGHT, uf_right.data)
 
 
-def obstacle_avoidance(speech, nav_map, comms, initial_values):
-    initial_uf_front_value, initial_uf_left_value, initial_uf_right_value = (
-        initial_values
-    )
+def obstacle_avoidance(speech, nav_map, comms,
+                       manual_quit=False):
     while True:
         read_uf_sensors(comms)
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
-        text = None
         side = None
         front_text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('front')
         left_text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('left')
         right_text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('right')
+
+        if manual_quit:
+            key_input = wait_for_input(0.5)
+            if key_input == '*':
+                return
+
         if uf_front_value is not None and \
                 uf_front_value > 10 and \
                 uf_front_value < UF_FRONT_THRESHOLD:
-            text = front_text
             side = 'front'
         elif uf_left_value is not None and \
                 uf_left_value > 10 and \
                 uf_left_value < UF_LEFT_THRESHOLD:
-            text = left_text
             side = 'left'
         elif uf_right_value is not None and \
                 uf_right_value > 10 and \
                 uf_right_value < UF_RIGHT_THRESHOLD:
-            text = right_text
             side = 'right'
         elif uf_front_value is not None and \
                 uf_left_value is not None and \
@@ -369,16 +369,25 @@ if __name__ == '__main__':
                 ))
 
             # Player is near the next node, set his position to it.
-            if nav_map.is_player_near_next_node():
-                building, level, node = nav_map.next_node.audio_components
-                logger.info('----------------------------------------')
-                logger.info((building, level, node))
-                logger.info('Player is near next node.')
-                speech.put(audio_text.STOP, 2)
+            near_staircase = nav_map.is_player_near_staircase_node()
+            near_next_node = nav_map.is_player_near_next_node()
+            if near_staircase or near_next_node:
                 is_stopped = True
-                speech.put(audio_text.CURRENT_POSITION.format(
-                    building, level, node
-                ), 1)
+                if near_next_node:
+                    building, level, node = nav_map.next_node.audio_components
+                    logger.info('----------------------------------------')
+                    logger.info((building, level, node))
+                    logger.info('Player is near next node.')
+                    speech.put(audio_text.STOP, 2)
+                    speech.put(audio_text.CURRENT_POSITION.format(
+                        building, level, node
+                    ), 1)
+                elif near_staircase:
+                    speech.put(audio_text.STAIRCASE_AHEAD, 1)
+                    obstacle_avoidance(
+                        speech, nav_map, comms, manual_quit=True
+                    )
+
                 nav_map.player.set_position_to_node(nav_map.next_node)
                 if len(nav_map.path) == 0:
                     speech.put(audio_text.STOP, 1)
@@ -435,11 +444,10 @@ if __name__ == '__main__':
             # send_obstacle_speech(speech, immediate=True)
             # Obstacle avoidance routine. This will unblock when cleared
             logger.info('Obstacle detected. Entering obstacle avoidance.')
-            initial_values = (
-                uf_front_value, uf_left_value, uf_right_value,
-            )
-            obstacle_avoidance(speech, nav_map, comms,
-                               initial_values=initial_values)
+            # initial_values = (
+            #     uf_front_value, uf_left_value, uf_right_value,
+            # )
+            obstacle_avoidance(speech, nav_map, comms)
             # speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
             # speech.clear_with_content_startswith('Obstacle')
 

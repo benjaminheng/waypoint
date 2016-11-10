@@ -2,17 +2,19 @@
 """Play a fixed frequency sound."""
 from __future__ import division
 import math
+import numpy as np
 from threading import Thread
 
 from pyaudio import PyAudio
-from itertools import izip
+from itertools import izip, count
 
 
 def get_samples(frequency, volume, sample_rate, n_samples):
     samples = (
         int(
-            # (volume * math.sin(2 * math.pi * frequency * t / sample_rate)) *
-            math.sin(2 * math.pi * frequency * t / sample_rate)
+            (volume * math.sin(2 * math.pi * frequency * t / sample_rate)) *
+            0x7f + 0x80
+            # math.sin(2 * math.pi * frequency * t / sample_rate)
         )
         for t in xrange(n_samples)  # NOQA
     )
@@ -57,28 +59,39 @@ class Tone(Thread):
             output=True
         )
 
+    def sine_wave(self, frequency=440.0, framerate=44100, amplitude=0.5):
+        if amplitude > 1.0:
+            amplitude = 1.0
+        if amplitude < 0.0:
+            amplitude = 0.0
+        return (
+            # float(amplitude) *
+            math.sin(2.0*math.pi*float(frequency)*(float(i)/float(framerate)))
+            for i in count(0)
+        )
+
     def run(self):
         n_samples = int(self.sample_rate * 3600)  # 1 hour length
         # restframes = n_samples % self.sample_rate
         samples = get_samples(
             self.frequency, self.volume, self.sample_rate, n_samples
         )
-        idx = 0
-        offset = self.sample_rate / 2   # 0.5sec
         while True:
             # write several samples at a time
-            count = 0
-            for buf in izip(*[samples]*self.sample_rate):
-                print(buf)
-                raw_input()
-                self.stream.write(
-                    bytes(bytearray([normalize(i) for i in buf]))
-                )
-                count += 1
-                if count >= offset:
-                    break
-            idx += offset
+            fs = 44100       # sampling rate, Hz, must be integer
+            duration = 1.0   # in seconds, may be float
+            f = 440.0        # sine frequency, Hz, may be float
+
+            # generate samples, note conversion to float32 array
+            # samples = (
+            #     (np.sin(2*np.pi*np.arange(fs*duration)*f/fs))
+            #     .astype(np.float32)
+            # )
+            self.stream.write(self.volume*samples)
 
 
 if __name__ == '__main__':
     tone = Tone()
+    tone.start()
+    while True:
+        pass

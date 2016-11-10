@@ -58,7 +58,7 @@ def wait_for_input(timeout=None):
             if count > 10:
                 return lastKey
         # Timeout
-        if timeout and time.time() - start > 10:
+        if timeout is not None and time.time() - start > timeout:
             return None
 
 
