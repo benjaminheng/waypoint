@@ -18,7 +18,7 @@ PROCEED_FORWARD = 'Proceed.'
 PROCEED_FORWARD_STEPS = 'Proceed {0} steps.'
 DESTINATION_REACHED = 'Destination reached'
 STAIRCASE_AHEAD = 'Stop! Staircase ahead'
-CURRENT_POSITION = 'You are at {0}, {1}, {2}'
+CURRENT_POSITION = 'Stop. You are at {0}, {1}, {2}'
 RESET_COMMS = 'Reset comms.'
 
 YOU_ARE_THE_BEST = 'Congratulations. You are the best.'

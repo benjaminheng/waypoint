@@ -178,9 +178,33 @@ def is_uf_value_within_threshold(uf_value, threshold):
     )
 
 
-def quit_obstacle_avoidance():
+# Staircase mode
+def quit_obstacle_avoidance(keypad):
     global obstacle_avoidance_enable
     obstacle_avoidance_enable = False
+    keypad.unregister_callback('*')
+
+
+def staircase_mode(speech, nav_map, comms, keypad):
+    global app_enable
+    global obstacle_avoidance_enable
+    global override_next_node
+    keypad.register_callback('*', quit_obstacle_avoidance)
+    obstacle_avoidance_enable = True
+    while app_enable:
+        if not obstacle_avoidance_enable or override_next_node:
+            obstacle_speech.clear_queue()
+            keypad.unregister_callback('*')
+            return
+        read_uf_sensors(comms)
+        uf_front_value, uf_left_value, uf_right_value = get_uf_values()
+        side = None
+
+        if is_uf_value_within_threshold(uf_front_value, UF_FRONT_THRESHOLD):
+            side = 'front'
+        # Disable left and right
+        if side:
+            obstacle_speech.put(side)
 
 
 def obstacle_avoidance(speech, nav_map, comms, keypad,
@@ -188,7 +212,7 @@ def obstacle_avoidance(speech, nav_map, comms, keypad,
     global app_enable
     global obstacle_avoidance_enable
     global override_next_node
-    keypad.register_callback('*', quit_obstacle_avoidance)
+    keypad.register_callback('*', quit_obstacle_avoidance, [keypad])
     while app_enable:
         if (
             (not obstacle_avoidance_enable and manual_quit) or
@@ -240,7 +264,7 @@ def reorient_player(speech, nav_map, comms):
             count = 0
         direction, angle = nav_map.calculate_player_turn_direction()
         send_turn_speech(speech, direction, angle)
-        if count >= 12:
+        if count >= 6:
             break
         time.sleep(0.2)
 
@@ -261,6 +285,7 @@ def reorient_player(speech, nav_map, comms):
         if side:
             obstacle_speech.put(side)
     logger.info('End reorienting user')
+    obstacle_speech.clear_queue()
     speech.clear_with_content_startswith('left')
     speech.clear_with_content_startswith('right')
     speech.clear_with_content_startswith('Slight')
@@ -414,7 +439,6 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
                     logger.info('----------------------------------------')
                     logger.info((building, level, node))
                     logger.info('Player is near next node.')
-                    speech.put(audio_text.STOP, 1)
                     speech.put(audio_text.CURRENT_POSITION.format(
                         building, level, node
                     ), 1)
@@ -425,14 +449,15 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
                         # 3. continue and set player location to next node
                         nav_map.player.set_position_to_node(nav_map.next_node)
                         speech.put(audio_text.STAIRCASE_AHEAD, 1)
-                        obstacle_avoidance(
-                            speech, nav_map, comms, keypad, manual_quit=True
-                        )
+                        staircase_mode(speech, nav_map, comms, keypad)
                         nav_map.next_node = nav_map.path.pop(0)
+                        nav_map.player.set_position_to_node(nav_map.next_node)
                         building, level, node = (
                             nav_map.next_node.audio_components
                         )
-                        speech.put(audio_text.STOP, 1)
+                        logger.info('----------------------------------------')
+                        logger.info((building, level, node))
+                        logger.info('Player is near next node.')
                         speech.put(audio_text.CURRENT_POSITION.format(
                             building, level, node
                         ), 1)
