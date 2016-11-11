@@ -201,16 +201,10 @@ def staircase_mode(speech, nav_map, comms, keypad):
 
 def obstacle_avoidance(speech, nav_map, comms, keypad):
     global app_enable
-    global obstacle_avoidance_enable
     global override_next_node
-    keypad.register_callback('*', quit_obstacle_avoidance, [keypad])
     while app_enable:
-        if (
-            not obstacle_avoidance_enable or
-            override_next_node
-        ):
+        if override_next_node:
             obstacle_speech.clear_queue()
-            keypad.unregister_callback('*')
             return
         read_uf_sensors(comms)
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
@@ -230,7 +224,6 @@ def obstacle_avoidance(speech, nav_map, comms, keypad):
         ):
             logger.info('Obstacle cleared.')
             obstacle_speech.clear_queue()
-            # speech.put(audio_text.OBSTACLE_CLEARED, 5)
             keypad.unregister_callback('*')
             return
         if side:
