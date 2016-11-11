@@ -275,6 +275,7 @@ def reorient_player(speech, nav_map, comms):
 
 def stop_app():
     global app_enable
+    logger.info('Restarting app')
     app_enable = False
 
 
