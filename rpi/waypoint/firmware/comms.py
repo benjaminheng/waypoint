@@ -20,9 +20,13 @@ class UART(object):
     def read(self):
         self.s.flushInput()
         data = self.serial.readline()
-        packet_type = Packet.get_packet_type(data)
-        data = data.encode('raw_unicode_escape')
-        return packet_type, data
+        try:
+            packet_type = Packet.get_packet_type(data)
+            data = data.encode('raw_unicode_escape')
+            return packet_type, data
+        except Exception as e:
+            logger.warning('{0}: {1}'.format(type(e).__name__, e))
+        return (None, None)
 
 
 class Comms(Thread):
@@ -69,25 +73,25 @@ class Comms(Thread):
         while True:
             try:
                 packet_type, data = self.uart.read()
+                if (
+                    packet_type is None and
+                    self.dead_callback is not None and
+                    not self.is_dead
+                ):
+                    self.dead_callback()
+                    callback_called = True
+                    self.is_dead = True
+                elif packet_type is not None:
+                    self.is_dead = False
+                if callback_called and not self.is_dead:
+                    callback_called = False
+
                 is_packet_valid = Packet.validate_checksum(data)
                 if is_packet_valid:
                     if packet_type == PacketType.DATA:
                         packets = Packet.deserialize(data)
                         for packet in packets:
                             self.device_queue[packet.device_id].append(packet)
-
-                        # Call callback ONCE if dead.
-                        self.is_dead = (time.time() - self.last_received) > 1.5
-                        self.last_received = time.time()
-                        if (
-                            self.is_dead and
-                            self.dead_callback and
-                            not callback_called
-                        ):
-                            self.dead_callback()
-                            callback_called = True
-                        if callback_called and not self.is_dead:
-                            callback_called = False
                         logger.debug(
                             '\t'.join(
                                 '{0}, {1}'.format(p.device_id, p.data)

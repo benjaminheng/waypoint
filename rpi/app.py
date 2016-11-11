@@ -498,7 +498,7 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
 
 if __name__ == '__main__':
     logger.info('Starting Waypoint')
-    comms = Comms('/dev/ttyAMA0')
+    comms = Comms('/dev/ttyAMA0', timeout=2)
     comms.start()
 
     speech = TextToSpeech()
