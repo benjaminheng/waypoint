@@ -42,6 +42,9 @@ is_stopped = False
 app_enable = True
 obstacle_avoidance_enable = True
 
+# Set to true to override player position to next node
+override_next_node = False
+
 
 def get_uf_values():
     global uf_count
@@ -184,9 +187,13 @@ def obstacle_avoidance(speech, nav_map, comms, keypad,
                        manual_quit=False):
     global app_enable
     global obstacle_avoidance_enable
+    global override_next_node
     keypad.register_callback('*', quit_obstacle_avoidance)
     while app_enable:
-        if not obstacle_avoidance_enable and manual_quit:
+        if (
+            (not obstacle_avoidance_enable and manual_quit) or
+            override_next_node
+        ):
             obstacle_speech.clear_queue()
             keypad.unregister_callback('*')
             return
@@ -217,9 +224,11 @@ def obstacle_avoidance(speech, nav_map, comms, keypad,
 
 def reorient_player(speech, nav_map, comms):
     global app_enable
+    global override_next_node
     logger.info('Reorienting user')
     count = 0
-    while app_enable:
+    # If app is enabled and we aren't overriding the node
+    while app_enable and not override_next_node:
         compass = comms.get_packet(DeviceID.COMPASS)
         if compass:
             nav_map.player.set_heading(compass.data + COMPASS_OFFSET)
@@ -262,6 +271,11 @@ def prompt_to_reset_comms():
     speech.put(audio_text.RESET_COMMS)
 
 
+def set_to_next_node():
+    global override_next_node
+    override_next_node = True
+
+
 def stop_app():
     global app_enable
     logger.info('Restarting app')
@@ -271,6 +285,7 @@ def stop_app():
 def app(comms, speech, obstacle_speech, keypad, nav_map):
     global app_enable
     global is_stopped
+    global override_next_node
     # TODO: Verify that nodes are different
     start_node_id, end_node_id = prompt_for_path(nav_map)
     logger.info('Player selected start and destination.')
@@ -381,30 +396,34 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
                 ))
 
             # Player is near the next node, set his position to it.
-            near_staircase = nav_map.is_player_near_staircase_node()
+            # near_staircase = nav_map.is_player_near_staircase_node()
             near_next_node = nav_map.is_player_near_next_node()
-            if near_staircase or near_next_node:
+            if near_next_node or override_next_node:
                 is_stopped = True
-                if near_next_node:
-                    building, level, node = nav_map.next_node.audio_components
-                    logger.info('----------------------------------------')
-                    logger.info((building, level, node))
-                    logger.info('Player is near next node.')
-                    speech.put(audio_text.STOP, 2)
-                    speech.put(audio_text.CURRENT_POSITION.format(
-                        building, level, node
-                    ), 1)
-                # If near staircase,
-                # 1. set position to the next node
-                # 2. enter staircase mode (obstacle avoidance, no steps)
-                # 3. on exit, continue and set player location to next node
-                elif near_staircase:
-                    nav_map.player.set_position_to_node(nav_map.next_node)
-                    speech.put(audio_text.STAIRCASE_AHEAD, 1)
-                    obstacle_avoidance(
-                        speech, nav_map, comms, keypad, manual_quit=True
-                    )
+                if near_next_node or override_next_node:
+                    if not nav_map.next_node.is_staircase:
+                        building, level, node = (
+                            nav_map.next_node.audio_components
+                        )
+                        logger.info('----------------------------------------')
+                        logger.info((building, level, node))
+                        logger.info('Player is near next node.')
+                        speech.put(audio_text.STOP, 2)
+                        speech.put(audio_text.CURRENT_POSITION.format(
+                            building, level, node
+                        ), 1)
+                    else:
+                        # If near staircase,
+                        # 1. set position to the next node
+                        # 2. enter staircase mode (obstacle avoidance)
+                        # 3. continue and set player location to next node
+                        nav_map.player.set_position_to_node(nav_map.next_node)
+                        speech.put(audio_text.STAIRCASE_AHEAD, 1)
+                        obstacle_avoidance(
+                            speech, nav_map, comms, keypad, manual_quit=True
+                        )
 
+                override_next_node = False
                 nav_map.player.set_position_to_node(nav_map.next_node)
                 if len(nav_map.path) == 0:
                     speech.put(audio_text.STOP, 1)
@@ -517,6 +536,7 @@ if __name__ == '__main__':
     nav_map.init(download=DOWNLOAD_MAP, cache=CACHE_DOWNLOADED_MAP)
 
     keypad.register_callback('999', stop_app)
+    keypad.register_callback('0', set_to_next_node)
     comms.register_dead_callback(prompt_to_reset_comms)
 
     # app() is blocking. Restart app on new iteration
