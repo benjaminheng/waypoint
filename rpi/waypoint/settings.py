@@ -33,7 +33,12 @@ UF_RIGHT_THRESHOLD = 100
 
 COMPASS_OFFSET = 0
 
-STAIRCASE_NODES = {
+# NEXTNODE: PREV_NODE; NEXTNODE is the staircase node
+STAIRCASE_EDGES = {
+    '2_2_14': '2_2_13',
+    '2_2_16': '2_2_15',
+    '2_2_15': '2_2_16',
+    '2_2_10': '2_2_9',
 }
 
 

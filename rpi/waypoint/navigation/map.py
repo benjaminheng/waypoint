@@ -5,7 +5,7 @@ import heapq
 import re
 from waypoint.settings import (
     FLOORPLAN_URL, BUILDINGS, NODE_PROXIMITY_THRESHOLD, STEP_LENGTH,
-    CACHE_FILE, STAIRCASE_NODES, STAIRCASE_NODE_PROXIMITY_THRESHOLD
+    CACHE_FILE, STAIRCASE_EDGES, STAIRCASE_NODE_PROXIMITY_THRESHOLD
 )
 from waypoint.navigation.heading import (
     calculate_turn_direction, is_pointing_to_node
@@ -48,7 +48,7 @@ class PriorityQueue(object):
 class Node(object):
     """Describes a node on the map."""
     def __init__(self, node_id, x, y, name, adjacent_node_ids, level,
-                 building, is_staircase=False):
+                 building):
         node_id = self._get_node_id(building, level, node_id)
         adjacent = (
             self._get_node_id(building, level, i.strip())
@@ -61,7 +61,7 @@ class Node(object):
         self.adjacent = adjacent
         self.level = level
         self.building = building
-        self.is_staircase = is_staircase
+        self.is_staircase = False
 
     @property
     def components(self):
@@ -211,7 +211,6 @@ class Map(object):
                 )
 
                 for point in result.get('map', {}):
-                    is_staircase = point.get('nodeId') in STAIRCASE_NODES
                     node = Node(
                         point.get('nodeId'),
                         int(point.get('x')),
@@ -220,9 +219,25 @@ class Map(object):
                         [i.strip() for i in point.get('linkTo').split(',')],
                         level,
                         building,
-                        is_staircase=is_staircase
                     )
                     self.nodes[node.id] = node
+
+    def is_node_a_staircase(self, prev_node, node):
+        if prev_node is None and node.id in STAIRCASE_EDGES:
+            return True
+        if node.id not in STAIRCASE_EDGES:
+            return False
+        prev_node_id = STAIRCASE_EDGES.get(node.id)
+        if prev_node.id == prev_node_id:
+            return True
+        return False
+
+    def init_staircase_nodes(self):
+        prev_node = None
+        for node in self.path:
+            if self.is_node_a_staircase(prev_node, node):
+                node.is_staircase = True
+            prev_node = node
 
     def is_player_near_staircase_node(self):
         if not self.next_node.is_staircase:
@@ -316,7 +331,9 @@ class Map(object):
                     frontier.put(next, priority)
                     came_from[next] = current
 
+        # Sets self.path
         self.init_path(start, goal, came_from)
+        self.init_staircase_nodes()
         return came_from, cost_so_far
 
     def init_path(self, start, goal, came_from):

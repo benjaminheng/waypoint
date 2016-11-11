@@ -292,6 +292,12 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
     nav_map.search(start_node_id, end_node_id)
     logger.info(nav_map.path)
 
+    # TODO: debugging. remove.
+    for node in nav_map.path:
+        logger.info('{0} -> is_staircase={1}'.format(
+            node.id, node.is_staircase
+        ))
+
     # TODO: validate path exists
 
     # Prompt to start navigation
