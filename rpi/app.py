@@ -224,7 +224,6 @@ def obstacle_avoidance(speech, nav_map, comms, keypad):
         ):
             logger.info('Obstacle cleared.')
             obstacle_speech.clear_queue()
-            keypad.unregister_callback('*')
             return
         if side:
             obstacle_speech.put(side)
@@ -440,11 +439,21 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
                         # 2. enter staircase mode (obstacle avoidance)
                         # 3. continue and set player location to next node
                         nav_map.player.set_position_to_node(nav_map.next_node)
-                        speech.put(audio_text.STAIRCASE_AHEAD, 1)
+                        speech.put(audio_text.STAIRCASE_AHEAD, 2)
                         staircase_mode(speech, nav_map, comms, keypad)
                         nav_map.next_node = nav_map.path.pop(0)
                         # If change in level, do the same as change in building
                         if nav_map.player.level != nav_map.next_node.level:
+                            # Say 2nd node (different level)
+                            building, level, node = (
+                                nav_map.next_node.audio_components
+                            )
+                            logger.info((building, level, node))
+                            logger.info('Player is near next node.')
+                            speech.put(audio_text.CURRENT_POSITION.format(
+                                building, level, node
+                            ), 1)
+
                             nav_map.player.set_position_to_node(
                                 nav_map.next_node
                             )
