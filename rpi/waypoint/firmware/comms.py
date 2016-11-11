@@ -22,6 +22,8 @@ class UART(object):
         data = self.serial.readline()
         try:
             packet_type = Packet.get_packet_type(data)
+            if packet_type is None:
+                return (None, None)
             data = data.encode('raw_unicode_escape')
             return packet_type, data
         except Exception as e:
@@ -73,6 +75,8 @@ class Comms(Thread):
         while True:
             try:
                 packet_type, data = self.uart.read()
+                if packet_type is None:
+                    continue
                 if (
                     packet_type is None and
                     self.dead_callback is not None and
