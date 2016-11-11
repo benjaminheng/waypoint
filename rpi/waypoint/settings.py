@@ -41,7 +41,7 @@ STAIRCASE_EDGES = {
     '2_3_10': '2_3_9',
 }
 
-DISABLE_UF_LEFT_RIGHT_EDGES = {
+DISABLE_UF_EDGES = {
     '2_2_14': '2_2_13',
     '2_2_13': '2_2_14',
     '2_2_12': '2_2_13',
