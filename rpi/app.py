@@ -168,9 +168,9 @@ def read_uf_sensors(comms):
 
 def is_uf_value_within_threshold(uf_value, threshold):
     return (
-        uf_front_value is not None and
-        uf_front_value > 10 and
-        uf_front_value < UF_FRONT_THRESHOLD
+        uf_value is not None and
+        uf_value > 10 and
+        uf_value < threshold
     )
 
 
