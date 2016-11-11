@@ -450,6 +450,12 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
                         speech.put(audio_text.STAIRCASE_AHEAD, 1)
                         staircase_mode(speech, nav_map, comms, keypad)
                         nav_map.next_node = nav_map.path.pop(0)
+                        # If change in level, do the same as change in building
+                        if nav_map.player.level != nav_map.next_node.level:
+                            nav_map.player.set_position_to_node(
+                                nav_map.next_node
+                            )
+                            nav_map.next_node = nav_map.path.pop(0)
                         nav_map.player.set_position_to_node(nav_map.next_node)
                         building, level, node = (
                             nav_map.next_node.audio_components
