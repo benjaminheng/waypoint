@@ -190,7 +190,7 @@ def staircase_mode(speech, nav_map, comms, keypad):
     global app_enable
     global obstacle_avoidance_enable
     global override_next_node
-    keypad.register_callback('*', quit_obstacle_avoidance)
+    keypad.register_callback('*', quit_obstacle_avoidance, [keypad])
     obstacle_avoidance_enable = True
     while app_enable:
         if not obstacle_avoidance_enable or override_next_node:
