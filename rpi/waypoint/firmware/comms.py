@@ -77,9 +77,13 @@ class Comms(Thread):
                             self.device_queue[packet.device_id].append(packet)
 
                         # Call callback ONCE if dead.
-                        self.last_received = time.time()
                         self.is_dead = (time.time() - self.last_received) > 1.5
-                        if self.dead_callback and not callback_called:
+                        self.last_received = time.time()
+                        if (
+                            self.is_dead and
+                            self.dead_callback and
+                            not callback_called
+                        ):
                             self.dead_callback()
                             callback_called = True
                         if callback_called and not self.is_dead:
