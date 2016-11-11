@@ -216,7 +216,7 @@ def obstacle_avoidance(speech, nav_map, comms, keypad,
     keypad.register_callback('*', quit_obstacle_avoidance, [keypad])
     while app_enable:
         if (
-            (not obstacle_avoidance_enable and manual_quit) or
+            not obstacle_avoidance_enable or
             override_next_node
         ):
             obstacle_speech.clear_queue()
