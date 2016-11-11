@@ -468,7 +468,10 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
                 else:
                     prev_node = nav_map.next_node
                     nav_map.next_node = nav_map.path.pop(0)
-                    if nav_map.player.building != nav_map.next_node.building:
+                    if (
+                        nav_map.player.building != nav_map.next_node.building or  # NOQA
+                        nav_map.player.level != nav_map.next_node.level
+                    ):
                         nav_map.player.set_position_to_node(nav_map.next_node)
                         nav_map.next_node = nav_map.path.pop(0)
                         if len(nav_map.path) == 0:
