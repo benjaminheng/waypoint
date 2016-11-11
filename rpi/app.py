@@ -409,11 +409,14 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
                     logger.debug('New last_steps: {0}'.format(last_steps))
                     break
         step_counter = comms.get_packet(DeviceID.STEP_COUNT)
-        if step_counter and step_counter.data > last_steps:
+        if (step_counter and step_counter.data > last_steps) or \
+                override_next_node:
             delta = step_counter.data - last_steps
             last_steps = step_counter.data
             step_count += delta
             steps_since_last_node += delta
+            if override_next_node:
+                logger.debug('Node overridden!')
             logger.debug('step_count = {0}; steps_since_last_node = {1}'
                          .format(step_count, steps_since_last_node))
 
