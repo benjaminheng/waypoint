@@ -100,12 +100,14 @@ class KeypadThread(Thread):
 
     def run(self):
         while True:
-            if self.enable:
-                code = wait_for_confirmed_input()
-                logger.info(code)
-                logger.info(self.callbacks)
-                if code in self.callbacks:
-                    func, args = self.callbacks.get('code')
-                    func(*args)
-            else:
-                time.sleep(1)
+            try:
+                if self.enable:
+                    code = wait_for_confirmed_input()
+                    if code in self.callbacks:
+                        func, args = self.callbacks.get(code)
+                        logger.info('Callback: {0}'.format(func))
+                        func(*args)
+                else:
+                    time.sleep(1)
+            except Exception as e:
+                logger.warning('{0}: {1}'.format(type(e).__name__, e))
