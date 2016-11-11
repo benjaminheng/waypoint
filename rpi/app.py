@@ -8,7 +8,9 @@ from waypoint.navigation.heading import (
 from waypoint.audio.text_to_speech import TextToSpeech, ObstacleSpeech
 from waypoint.firmware.comms import Comms
 from waypoint.firmware.packet import DeviceID
-from waypoint.firmware.keypad import wait_for_confirmed_input, wait_for_input
+from waypoint.firmware.keypad import (
+    wait_for_confirmed_input, wait_for_input, KeypadThread
+)
 from waypoint.audio import constants as audio_text
 from waypoint.settings import (
     UF_FRONT_THRESHOLD, UF_LEFT_THRESHOLD, UF_RIGHT_THRESHOLD,
@@ -35,6 +37,9 @@ uf_history = {
 
 # If player has been told to stop
 is_stopped = False
+
+# Set app_enable to True for continuous running
+app_enable = True
 
 
 def get_uf_values():
@@ -171,7 +176,8 @@ def is_uf_value_within_threshold(uf_value, threshold):
 
 def obstacle_avoidance(speech, nav_map, comms,
                        manual_quit=False):
-    while True:
+    global app_enable
+    while app_enable:
         read_uf_sensors(comms)
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
         side = None
@@ -225,9 +231,10 @@ def obstacle_avoidance(speech, nav_map, comms,
 
 
 def reorient_player(speech, nav_map, comms):
+    global app_enable
     logger.info('Reorienting user')
     count = 0
-    while True:
+    while app_enable:
         compass = comms.get_packet(DeviceID.COMPASS)
         if compass:
             nav_map.player.set_heading(compass.data + COMPASS_OFFSET)
@@ -266,24 +273,16 @@ def reorient_player(speech, nav_map, comms):
     logger.info('Speech queue: {0}'.format(speech.queue.queue))
 
 
-if __name__ == '__main__':
-    logger.info('Starting Waypoint')
-    comms = Comms('/dev/ttyAMA0')
-    comms.start()
+def stop_app():
+    global app_enable
+    app_enable = False
 
-    speech = TextToSpeech()
-    speech.daemon = True
-    speech.start()
 
-    obstacle_speech = ObstacleSpeech()
-    obstacle_speech.daemon = True
-    obstacle_speech.start()
-
-    nav_map = Map()
-    nav_map.init(download=DOWNLOAD_MAP, cache=CACHE_DOWNLOADED_MAP)
-
+def app(comms, speech, obstacle_speech, keypad, nav_map):
+    global app_enable
     # TODO: Verify that nodes are different
     start_node_id, end_node_id = prompt_for_path(nav_map)
+    logger.info('Player selected start and destination.')
     # start_node_id, end_node_id = '1_2_21', '1_2_28'
     logger.info('Getting optimal path for: {0}, {1}'.format(
         start_node_id, end_node_id
@@ -295,7 +294,6 @@ if __name__ == '__main__':
 
     # Prompt to start navigation
     prompt_for_navigation_start()
-    logger.info('Player selected start and destination.')
 
     # Set player position
     start_node = nav_map.path.pop(0)
@@ -349,7 +347,11 @@ if __name__ == '__main__':
     speech.put(audio_text.PROCEED_FORWARD_STEPS.format(
         nav_map.steps_to_next_node
     ))
-    while True:
+
+    # Start navigation!
+    app_enable = True
+    keypad.enable = True
+    while app_enable:
         step_counter = comms.get_packet(DeviceID.STEP_COUNT)
         if step_counter and step_counter.data > last_steps:
             delta = step_counter.data - last_steps
@@ -483,3 +485,30 @@ if __name__ == '__main__':
                     last_steps = step_counter.data
                     logger.debug('New last_steps: {0}'.format(last_steps))
                     break
+
+
+if __name__ == '__main__':
+    logger.info('Starting Waypoint')
+    comms = Comms('/dev/ttyAMA0')
+    comms.start()
+
+    speech = TextToSpeech()
+    speech.daemon = True
+    speech.start()
+
+    obstacle_speech = ObstacleSpeech()
+    obstacle_speech.daemon = True
+    obstacle_speech.start()
+
+    keypad = KeypadThread()
+    keypad.daemon = True
+    keypad.start()
+
+    nav_map = Map()
+    nav_map.init(download=DOWNLOAD_MAP, cache=CACHE_DOWNLOADED_MAP)
+
+    keypad.register_callback('999', stop_app)
+
+    # app() is blocking. Restart app on new iteration
+    while True:
+        app(comms, speech, obstacle_speech, keypad, nav_map)
