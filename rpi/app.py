@@ -282,6 +282,13 @@ def stop_app():
     app_enable = False
 
 
+def destination_speech(speech):
+    speech.put(audio_text.STOP, 1)
+    speech.put(audio_text.DESTINATION_REACHED, 1)
+    speech.put(audio_text.YOU_ARE_THE_BEST, 1)
+    logger.info('Destination reached!')
+
+
 def app(comms, speech, obstacle_speech, keypad, nav_map):
     global app_enable
     global is_stopped
@@ -407,7 +414,7 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
                     logger.info('----------------------------------------')
                     logger.info((building, level, node))
                     logger.info('Player is near next node.')
-                    speech.put(audio_text.STOP, 2)
+                    speech.put(audio_text.STOP, 1)
                     speech.put(audio_text.CURRENT_POSITION.format(
                         building, level, node
                     ), 1)
@@ -421,26 +428,28 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
                         obstacle_avoidance(
                             speech, nav_map, comms, keypad, manual_quit=True
                         )
-
+                        nav_map.next_node = nav_map.path.pop(0)
+                        building, level, node = (
+                            nav_map.next_node.audio_components
+                        )
+                        speech.put(audio_text.STOP, 1)
+                        speech.put(audio_text.CURRENT_POSITION.format(
+                            building, level, node
+                        ), 1)
+                    else:
+                        nav_map.player.set_position_to_node(nav_map.next_node)
                 override_next_node = False
-                nav_map.player.set_position_to_node(nav_map.next_node)
                 if len(nav_map.path) == 0:
-                    speech.put(audio_text.STOP, 1)
-                    speech.put(audio_text.DESTINATION_REACHED, 1)
-                    speech.put(audio_text.YOU_ARE_THE_BEST, 1)
-                    logger.info('Destination reached!')
-                    # TODO: prompt for new path
+                    # destination reached
+                    destination_speech(speech)
                 else:
                     nav_map.next_node = nav_map.path.pop(0)
                     if nav_map.player.building != nav_map.next_node.building:
                         nav_map.player.set_position_to_node(nav_map.next_node)
                         nav_map.next_node = nav_map.path.pop(0)
-                        # TODO: extract destination reach logic out
                         if len(nav_map.path) == 0:
-                            speech.put(audio_text.STOP, 1)
-                            speech.put(audio_text.DESTINATION_REACHED, 1)
-                            speech.put(audio_text.YOU_ARE_THE_BEST, 1)
-                            logger.info('Destination reached!')
+                            # destination reached
+                            destination_speech(speech)
 
                 # Check if player needs to be reoriented after reaching node
                 reorient_player(speech, nav_map, comms)
