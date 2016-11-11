@@ -401,18 +401,17 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
             if near_next_node or override_next_node:
                 is_stopped = True
                 if near_next_node or override_next_node:
-                    if not nav_map.next_node.is_staircase:
-                        building, level, node = (
-                            nav_map.next_node.audio_components
-                        )
-                        logger.info('----------------------------------------')
-                        logger.info((building, level, node))
-                        logger.info('Player is near next node.')
-                        speech.put(audio_text.STOP, 2)
-                        speech.put(audio_text.CURRENT_POSITION.format(
-                            building, level, node
-                        ), 1)
-                    else:
+                    building, level, node = (
+                        nav_map.next_node.audio_components
+                    )
+                    logger.info('----------------------------------------')
+                    logger.info((building, level, node))
+                    logger.info('Player is near next node.')
+                    speech.put(audio_text.STOP, 2)
+                    speech.put(audio_text.CURRENT_POSITION.format(
+                        building, level, node
+                    ), 1)
+                    if nav_map.next_node.is_staircase:
                         # If near staircase,
                         # 1. set position to the next node
                         # 2. enter staircase mode (obstacle avoidance)
