@@ -360,6 +360,19 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
     app_enable = True
     keypad.enable = True
     while app_enable:
+        if comms.is_dead:
+            speech.put(audio_text.RESET_COMMS)
+            while comms.is_dead:
+                time.sleep(0.2)
+            # Update step counter to ignore steps during avoidance
+            while True:
+                logger.info('Updating step counter after obstacle avoidance')
+                step_counter = comms.get_packet(DeviceID.STEP_COUNT)
+                # Break on the first valid packet
+                if step_counter:
+                    last_steps = step_counter.data
+                    logger.debug('New last_steps: {0}'.format(last_steps))
+                    break
         step_counter = comms.get_packet(DeviceID.STEP_COUNT)
         if step_counter and step_counter.data > last_steps:
             delta = step_counter.data - last_steps

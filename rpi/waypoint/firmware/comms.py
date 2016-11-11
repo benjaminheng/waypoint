@@ -1,3 +1,4 @@
+import time
 import serial
 import io
 from collections import deque
@@ -28,6 +29,8 @@ class Comms(Thread):
     def __init__(self, uart_device, baudrate=115200,
                  timeout=None, **kwargs):
         super(Comms, self).__init__()
+        self.last_received = time.time()
+        self.is_dead = False
         self.device_queue = {
             DeviceID.ULTRASOUND_FRONT: deque(maxlen=5),
             DeviceID.ULTRASOUND_LEFT: deque(maxlen=5),
@@ -67,6 +70,8 @@ class Comms(Thread):
                         packets = Packet.deserialize(data)
                         for packet in packets:
                             self.device_queue[packet.device_id].append(packet)
+                        self.last_received = time.time()
+                        self.is_dead = (time.time() - self.last_received) > 1.5
                         logger.debug(
                             '\t'.join(
                                 '{0}, {1}'.format(p.device_id, p.data)
