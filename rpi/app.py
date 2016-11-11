@@ -500,6 +500,7 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
                         logger.debug('New last_steps: {0}'.format(last_steps))
                         break
                 # speech.put(audio_text.PROCEED_FORWARD)
+                speech.clear_with_content_startswith('Proceed')
                 speech.put(audio_text.PROCEED_FORWARD_STEPS.format(
                     nav_map.get_steps_to_next_node()
                 ))
@@ -524,6 +525,7 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
                         logger.debug('New last_steps: {0}'.format(last_steps))
                         break
                 # speech.put(audio_text.PROCEED_FORWARD)
+                speech.clear_with_content_startswith('Proceed')
                 speech.put(audio_text.PROCEED_FORWARD_STEPS.format(
                     nav_map.get_steps_to_next_node()
                 ))
