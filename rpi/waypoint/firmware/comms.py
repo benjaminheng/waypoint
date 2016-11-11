@@ -26,7 +26,7 @@ class UART(object):
                 data = data.encode('raw_unicode_escape')
                 return packet_type, data
             except Exception as e:
-                logger.warning('{0}: {1}'.format(type(e).__name__, e))
+                logger.warning('{0}:: {1}'.format(type(e).__name__, e))
         return (None, None)
 
 
