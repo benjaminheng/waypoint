@@ -99,7 +99,10 @@ class KeypadThread(Thread):
         self.callbacks[code] = (callback_func, args,)
 
     def unregister_callback(self, code):
-        del self.callbacks[code]
+        try:
+            del self.callbacks[code]
+        except:
+            logger.warning('Excepting unregistering callback "*"')
 
     def run(self):
         while True:
