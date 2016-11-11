@@ -20,14 +20,13 @@ class UART(object):
     def read(self):
         self.s.flushInput()
         data = self.serial.readline()
-        try:
-            packet_type = Packet.get_packet_type(data)
-            if packet_type is None:
-                return (None, None)
-            data = data.encode('raw_unicode_escape')
-            return packet_type, data
-        except Exception as e:
-            logger.warning('{0}: {1}'.format(type(e).__name__, e))
+        if data:
+            try:
+                packet_type = Packet.get_packet_type(data)
+                data = data.encode('raw_unicode_escape')
+                return packet_type, data
+            except Exception as e:
+                logger.warning('{0}: {1}'.format(type(e).__name__, e))
         return (None, None)
 
 
