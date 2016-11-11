@@ -41,6 +41,10 @@ STAIRCASE_EDGES = {
     '2_3_10': '2_3_9',
 }
 
+DISABLE_UF_LEFT_RIGHT_EDGES = {
+    '2_2_14': '2_2_13',
+}
+
 
 try:
     from local_settings import *  # NOQA

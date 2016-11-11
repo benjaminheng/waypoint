@@ -14,7 +14,8 @@ from waypoint.firmware.keypad import (
 from waypoint.audio import constants as audio_text
 from waypoint.settings import (
     UF_FRONT_THRESHOLD, UF_LEFT_THRESHOLD, UF_RIGHT_THRESHOLD,
-    DOWNLOAD_MAP, CACHE_DOWNLOADED_MAP, COMPASS_OFFSET
+    DOWNLOAD_MAP, CACHE_DOWNLOADED_MAP, COMPASS_OFFSET,
+    DISABLE_UF_LEFT_RIGHT_EDGES
 )
 
 logger = get_logger(__name__)
@@ -208,7 +209,7 @@ def staircase_mode(speech, nav_map, comms, keypad):
 
 
 def obstacle_avoidance(speech, nav_map, comms, keypad,
-                       manual_quit=False):
+                       disable_left_right=False):
     global app_enable
     global obstacle_avoidance_enable
     global override_next_node
@@ -228,14 +229,16 @@ def obstacle_avoidance(speech, nav_map, comms, keypad,
         if is_uf_value_within_threshold(uf_front_value, UF_FRONT_THRESHOLD):
             side = 'front'
         elif is_uf_value_within_threshold(uf_left_value, UF_LEFT_THRESHOLD):
-            side = 'left'
+            if not disable_left_right:
+                side = 'left'
         elif is_uf_value_within_threshold(uf_right_value, UF_RIGHT_THRESHOLD):
-            side = 'right'
+            if not disable_left_right:
+                side = 'right'
         elif (
-            not manual_quit and
+            # Ignore left and right sensors if set to disabled
             uf_front_value is not None and
-            uf_left_value is not None and
-            uf_right_value is not None
+            (disable_left_right or uf_left_value is not None) and
+            (disable_left_right or uf_right_value is not None)
         ):
             logger.info('Obstacle cleared.')
             obstacle_speech.clear_queue()
@@ -381,6 +384,7 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
     last_steps = 0
     steps_since_last_node = 0
     time_since_last_speech = 0
+    disable_left_right_uf = False
 
     # initialize step counter
     while True:
@@ -475,6 +479,7 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
                     # destination reached
                     destination_speech(speech)
                 else:
+                    prev_node = nav_map.next_node
                     nav_map.next_node = nav_map.path.pop(0)
                     if nav_map.player.building != nav_map.next_node.building:
                         nav_map.player.set_position_to_node(nav_map.next_node)
@@ -482,6 +487,13 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
                         if len(nav_map.path) == 0:
                             # destination reached
                             destination_speech(speech)
+                    if (
+                        nav_map.next_node.id in DISABLE_UF_LEFT_RIGHT_EDGES and
+                        prev_node.id == DISABLE_UF_LEFT_RIGHT_EDGES.get(
+                            nav_map.next_node.id
+                        )
+                    ):
+                        disable_left_right_uf = True
 
                 # Check if player needs to be reoriented after reaching node
                 reorient_player(speech, nav_map, comms)
@@ -529,8 +541,8 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
         if (
             is_uf_value_within_threshold(uf_front_value, UF_FRONT_THRESHOLD) or
-            is_uf_value_within_threshold(uf_left_value, UF_LEFT_THRESHOLD) or
-            is_uf_value_within_threshold(uf_right_value, UF_RIGHT_THRESHOLD)
+            (is_uf_value_within_threshold(uf_left_value, UF_LEFT_THRESHOLD) and not disable_left_right_uf) or  # NOQA
+            (is_uf_value_within_threshold(uf_right_value, UF_RIGHT_THRESHOLD) and not disable_left_right_uf)  # NOQA
         ):
             # send_obstacle_speech(speech, immediate=True)
             # Obstacle avoidance routine. This will unblock when cleared
@@ -538,7 +550,8 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
             # initial_values = (
             #     uf_front_value, uf_left_value, uf_right_value,
             # )
-            obstacle_avoidance(speech, nav_map, comms, keypad)
+            obstacle_avoidance(speech, nav_map, comms, keypad,
+                               disable_left_right=disable_left_right_uf)
             # speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
             # speech.clear_with_content_startswith('Obstacle')
 
