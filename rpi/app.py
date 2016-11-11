@@ -280,6 +280,7 @@ def stop_app():
 
 def app(comms, speech, obstacle_speech, keypad, nav_map):
     global app_enable
+    global is_stopped
     # TODO: Verify that nodes are different
     start_node_id, end_node_id = prompt_for_path(nav_map)
     logger.info('Player selected start and destination.')
