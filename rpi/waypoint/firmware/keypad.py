@@ -98,6 +98,9 @@ class KeypadThread(Thread):
     def register_callback(self, code, callback_func, args=[]):
         self.callbacks[code] = (callback_func, args,)
 
+    def unregister_callback(self, code):
+        del self.callbacks[code]
+
     def run(self):
         while True:
             try:

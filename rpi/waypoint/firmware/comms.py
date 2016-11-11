@@ -31,6 +31,7 @@ class Comms(Thread):
         super(Comms, self).__init__()
         self.last_received = time.time()
         self.is_dead = False
+        self.dead_callback = None
         self.device_queue = {
             DeviceID.ULTRASOUND_FRONT: deque(maxlen=5),
             DeviceID.ULTRASOUND_LEFT: deque(maxlen=5),
@@ -55,12 +56,16 @@ class Comms(Thread):
                 return None
         return None
 
+    def register_dead_callback(self, func):
+        self.dead_callback = func
+
     def run(self):
         """Communication protocol implemented as a thread.
 
         Populates queue with packets received, which can be retrieved
         from the main thread.
         """
+        callback_called = False
         while True:
             try:
                 packet_type, data = self.uart.read()
@@ -70,8 +75,15 @@ class Comms(Thread):
                         packets = Packet.deserialize(data)
                         for packet in packets:
                             self.device_queue[packet.device_id].append(packet)
+
+                        # Call callback ONCE if dead.
                         self.last_received = time.time()
                         self.is_dead = (time.time() - self.last_received) > 1.5
+                        if self.dead_callback and not callback_called:
+                            self.dead_callback()
+                            callback_called = True
+                        if callback_called and not self.is_dead:
+                            callback_called = False
                         logger.debug(
                             '\t'.join(
                                 '{0}, {1}'.format(p.device_id, p.data)

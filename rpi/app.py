@@ -40,6 +40,7 @@ is_stopped = False
 
 # Set app_enable to True for continuous running
 app_enable = True
+obstacle_avoidance_enable = True
 
 
 def get_uf_values():
@@ -174,21 +175,24 @@ def is_uf_value_within_threshold(uf_value, threshold):
     )
 
 
-def obstacle_avoidance(speech, nav_map, comms,
+def quit_obstacle_avoidance():
+    global obstacle_avoidance_enable
+    obstacle_avoidance_enable = False
+
+
+def obstacle_avoidance(speech, nav_map, comms, keypad,
                        manual_quit=False):
     global app_enable
+    global obstacle_avoidance_enable
+    keypad.register_callback('*', quit_obstacle_avoidance)
     while app_enable:
+        if not obstacle_avoidance_enable and manual_quit:
+            obstacle_speech.clear_queue()
+            keypad.unregister_callback('*')
+            return
         read_uf_sensors(comms)
         uf_front_value, uf_left_value, uf_right_value = get_uf_values()
         side = None
-        front_text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('front')
-        left_text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('left')
-        right_text = audio_text.OBSTACLE_DETECTED_DIRECTION.format('right')
-
-        if manual_quit:
-            key_input = wait_for_input(0.5)
-            if key_input == '*':
-                return
 
         if is_uf_value_within_threshold(uf_front_value, UF_FRONT_THRESHOLD):
             side = 'front'
@@ -203,31 +207,12 @@ def obstacle_avoidance(speech, nav_map, comms,
             uf_right_value is not None
         ):
             logger.info('Obstacle cleared.')
-            # speech.clear_with_content_startswith('Obstacle')
-            speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
-            speech.clear_with_content(front_text)
-            speech.clear_with_content(left_text)
-            speech.clear_with_content(right_text)
             obstacle_speech.clear_queue()
             # speech.put(audio_text.OBSTACLE_CLEARED, 5)
+            keypad.unregister_callback('*')
             return
         if side:
             obstacle_speech.put(side)
-        # if text:
-        #     send_obstacle_speech(speech, text=text)
-
-        # if (
-        #     (uf_front_value and uf_front_value < UF_FRONT_THRESHOLD) or
-        #     (uf_left_value and uf_left_value < UF_LEFT_THRESHOLD) or
-        #     (uf_right_value and uf_right_value < UF_RIGHT_THRESHOLD)
-        # ):
-            # send_obstacle_speech(speech)
-        # elif uf_front_value and uf_left_value and uf_right_value:
-            # logger.info('Obstacle cleared.')
-            # speech.put(audio_text.OBSTACLE_CLEARED, 5)
-            # return
-        # else:
-            # continue
 
 
 def reorient_player(speech, nav_map, comms):
@@ -271,6 +256,10 @@ def reorient_player(speech, nav_map, comms):
     speech.clear_with_content_startswith('right')
     speech.clear_with_content_startswith('Slight')
     logger.info('Speech queue: {0}'.format(speech.queue.queue))
+
+
+def prompt_to_reset_comms():
+    speech.put(audio_text.RESET_COMMS)
 
 
 def stop_app():
@@ -361,7 +350,6 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
     keypad.enable = True
     while app_enable:
         if comms.is_dead:
-            speech.put(audio_text.RESET_COMMS)
             while comms.is_dead:
                 time.sleep(0.2)
             # Update step counter to ignore steps during avoidance
@@ -414,7 +402,7 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
                     nav_map.player.set_position_to_node(nav_map.next_node)
                     speech.put(audio_text.STAIRCASE_AHEAD, 1)
                     obstacle_avoidance(
-                        speech, nav_map, comms, manual_quit=True
+                        speech, nav_map, comms, keypad, manual_quit=True
                     )
 
                 nav_map.player.set_position_to_node(nav_map.next_node)
@@ -491,7 +479,7 @@ def app(comms, speech, obstacle_speech, keypad, nav_map):
             # initial_values = (
             #     uf_front_value, uf_left_value, uf_right_value,
             # )
-            obstacle_avoidance(speech, nav_map, comms)
+            obstacle_avoidance(speech, nav_map, comms, keypad)
             # speech.clear_with_content(audio_text.OBSTACLE_DETECTED)
             # speech.clear_with_content_startswith('Obstacle')
 
@@ -529,6 +517,7 @@ if __name__ == '__main__':
     nav_map.init(download=DOWNLOAD_MAP, cache=CACHE_DOWNLOADED_MAP)
 
     keypad.register_callback('999', stop_app)
+    comms.register_dead_callback(prompt_to_reset_comms)
 
     # app() is blocking. Restart app on new iteration
     while True:
