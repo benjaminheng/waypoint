@@ -592,7 +592,6 @@ if __name__ == '__main__':
     nav_map.init(download=DOWNLOAD_MAP, cache=CACHE_DOWNLOADED_MAP)
 
     keypad.register_callback('999', stop_app)
-    keypad.register_callback('0', set_to_next_node)
     comms.register_dead_callback(prompt_to_reset_comms)
 
     # app() is blocking. Restart app on new iteration
