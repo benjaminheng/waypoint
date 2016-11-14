@@ -25,12 +25,55 @@ Kalman kalmanY;
 #define MAX_BUFFER 25 //for steps
 
 //define for compass reset
-#define MAXCOMPASS 15
+#define MAXCOMPASS 12
 uint16_t compassBuffer[MAXCOMPASS];
 int pointerBuffer = 0;
 int compassCount;
 
+uint16_t UltrasonicArmLeft;
+uint16_t UltrasonicArmRight;
+uint16_t UltrasonicFront;
+uint16_t UltrasonicLeft;
+uint16_t UltrasonicRight;
+uint16_t Infrared;
+//uint16_t ALTIMUGyroX; //output from Kalman task
+uint16_t Num_step;
+uint16_t Total_dist;
+uint16_t heading;
+// JQ's Variables
+const uint8_t IMUAddress = 0x6B; // AD0 is logic low on the PCB //initally 68
+const uint16_t I2C_TIMEOUT = 1000; // Used to check for errors in I2C communication    
+const uint8_t address = 0x6B;
+/* IMU Data */
+//double AccX, AccY, AccZ;
+//double gyroX, gyroY, gyroZ;
+int16_t tempRaw;
+LSM303 compass; // needs to be replaced with 
+double gyroXangle, gyroYangle; // Angle calculate using the gyro only
+double compAngleX, compAngleY; // Calculated angle using a complementary filter
+double kalAngleX, kalAngleY; // Calculated angle using a Kalman filter
+uint8_t i2cData[14]; // Buffer for I2C data
+    
+int16_t AccX, AccY, AccZ, MagX, MagY, MagZ, GyroX, GyroY, GyroZ; // what about compass?
 
+//declare for step counter
+const int THRESHOLD = 1300;
+const int CHANGING_PERIOD = 900;
+#define CALC_STEPS_DELAY 250
+
+uint32_t lastChange_time;
+uint32_t timer;
+long x , y , z, xo , yo , zo;
+long mag;
+long buffer_value[3][MAX_BUFFER] = {{0}};
+int pointer = 0;
+double distance = 0.0;
+
+int i;
+long initial_value[3];
+long temp[3]={0};
+int count = 0;
+//endhere
 
 enum regAddr
 {
@@ -97,50 +140,6 @@ typedef struct DevicePayload
     uint8_t id;
     uint16_t data;
 }DevicePayload;
-
-uint16_t UltrasonicArmLeft;
-uint16_t UltrasonicArmRight;
-uint16_t UltrasonicFront;
-uint16_t UltrasonicLeft;
-uint16_t UltrasonicRight;
-uint16_t Infrared;
-//uint16_t ALTIMUGyroX; //output from Kalman task
-uint16_t Num_step;
-uint16_t Total_dist;
-uint16_t heading;
-// JQ's Variables
-const uint8_t IMUAddress = 0x6B; // AD0 is logic low on the PCB //initally 68
-const uint16_t I2C_TIMEOUT = 1000; // Used to check for errors in I2C communication    
-const uint8_t address = 0x6B;
-/* IMU Data */
-//double AccX, AccY, AccZ;
-//double gyroX, gyroY, gyroZ;
-int16_t tempRaw;
-LSM303 compass; // needs to be replaced with 
-double gyroXangle, gyroYangle; // Angle calculate using the gyro only
-double compAngleX, compAngleY; // Calculated angle using a complementary filter
-double kalAngleX, kalAngleY; // Calculated angle using a Kalman filter
-uint8_t i2cData[14]; // Buffer for I2C data
-    
-int16_t AccX, AccY, AccZ, MagX, MagY, MagZ, GyroX, GyroY, GyroZ; // what about compass?
-
-//declare for step counter
-const int THRESHOLD = 1300;
-const int CHANGING_PERIOD = 1000;
-uint32_t lastChange_time;
-uint32_t timer;
-long x , y , z, xo , yo , zo;
-long mag;
-long buffer_value[3][MAX_BUFFER] = {{0}};
-int pointer = 0;
-double distance = 0.0;
-
-int i;
-long initial_value[3];
-long temp[3]={0};
-int count = 0;
-//endhere
-
 
 
 // the setup function runs once when you press reset or power the board
@@ -231,14 +230,14 @@ void setup() {
     ,  NULL
     );
     
-  xTaskCreate(
-        ReadInfrared
-    ,  (const portCHAR *)"ReadInfrared"   
-    ,  STACKSIZE  // Stack size
-    ,  NULL
-    ,  1  // priority
-    ,  NULL
-    );
+//  xTaskCreate(
+//        ReadInfrared
+//    ,  (const portCHAR *)"ReadInfrared"   
+//    ,  STACKSIZE  // Stack size
+//    ,  NULL
+//    ,  1  // priority
+//    ,  NULL
+//    );
       
   xTaskCreate(
         ReadUltrasonic1
@@ -478,23 +477,23 @@ void GetCompass( void *pvParameters ){
     compass.read();
     heading = compass.heading();
 
-    //reset if same value for more than MAXCOMPASS times
-    compassBuffer[pointerBuffer] = heading;
-    compassCount = 0;
-    pointerBuffer = (pointerBuffer + 1) % MAXCOMPASS;
-    for(int i = 0; i < MAXCOMPASS-1; i++)
-    {
-      if(compassBuffer[i] == compassBuffer[i+1])
-        compassCount++;
-    }
-    if(compassCount >= MAXCOMPASS-1)
-    {
-      Serial.println("compass reset");
-      compassCount = 0;
-      compass.init();
-      delay(350);
-      heading = compassBuffer[pointerBuffer-1];
-    }
+//    //reset if same value for more than MAXCOMPASS times
+//    compassBuffer[pointerBuffer] = heading;
+//    compassCount = 0;
+//    pointerBuffer = (pointerBuffer + 1) % MAXCOMPASS;
+//    for(int i = 0; i < MAXCOMPASS-1; i++)
+//    {
+//      if(compassBuffer[i] == compassBuffer[i+1])
+//        compassCount++;
+//    }
+//    if(compassCount >= MAXCOMPASS-1)
+//    {
+//      Serial.println("compass reset");
+//      compassCount = 0;
+//      //compass.init();
+//      delay(250);
+//      heading = compassBuffer[pointerBuffer];
+//    }
     delay(50);
   }
 }
@@ -541,19 +540,20 @@ void CalcSteps( void *pvParameters ){
   //Serial.println(count);
   Num_step = count;
   Total_dist = distance;
-  delay(100);
+  delay(CALC_STEPS_DELAY);
   }
 }
 
-void ReadInfrared( void *pvParameters ){
-    for(;;){
-      Infrared = MIXLIB.getInfrared_cm();
-    }
-}
+//void ReadInfrared( void *pvParameters ){
+//    for(;;){
+//      Infrared = MIXLIB.getInfrared_cm();
+//    }
+//}
 
 void ReadUltrasonic1( void *pvParameters ){
     for(;;){
       UltrasonicArmLeft = MIXLIB.getSR04_ArmLeft_cm();
+      //Serial.println(UltrasonicArmLeft);
       if(UltrasonicArmLeft < 40) {
         digitalWrite(MOTOR_LEFT, HIGH);
         delay(20);
@@ -569,6 +569,7 @@ void ReadUltrasonic1( void *pvParameters ){
 void ReadUltrasonic2( void *pvParameters ){
     for(;;){
       UltrasonicArmRight = MIXLIB.getSR04_ArmRight_cm();
+      //Serial.println(UltrasonicArmRight);
       if(UltrasonicArmRight < 40) {
         digitalWrite(MOTOR_RIGHT, HIGH);
         delay(20);
@@ -621,7 +622,9 @@ void SendToPi( void *pvParameters ){
       devices[6].data = Infrared;
       uint8_t numDevices = sizeof(devices) / sizeof(devices[0]);
       sendData(PACKET_TYPE_DATA, devices, numDevices);
-      //Serial.println(heading);
+      //Serial.print(UltrasonicArmLeft);
+      //Serial.println(Infrared);
+      Serial.println(Num_step);
     }
 }
 
